@@ -1,0 +1,26 @@
+{
+  "name": "root",
+  "private": true,
+  "scripts": {
+    "watch": "lerna run watch --parallel",
+    "test": "lerna run test",
+    "test:ci:changed": "lerna run test:ci --since origin/main --parallel",
+    "test:ci:all": "lerna run test:ci --parallel",
+    "build": "lerna run build",
+    "build:ci": "lerna run build",
+    "postinstall": "lerna bootstrap",
+    "prettier": "prettier --config .prettierrc.yml --write --ignore-unknown \"**/*\"",
+    "prettier:check": "npx prettier@2.3.2 --config .prettierrc.yml --check --ignore-unknown \"**/*\"",
+    "version:update": "lerna run version:update",
+    "version": "git add packages/**/version.ts",
+    "publish:ci": "lerna publish --yes --allow-branch main --create-release github --conventionalCommits",
+    "publish:ci:prerelease": "lerna publish --yes --no-git-tag-version --no-push --no-changelog --dist-tag alpha"
+  },
+  "devDependencies": {
+    "lerna": "^3.22.1",
+    "prettier": "2.3.2"
+  },
+  "workspaces": [
+    "packages/*"
+  ]
+}
