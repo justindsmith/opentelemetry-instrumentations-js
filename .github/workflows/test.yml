@@ -1,0 +1,36 @@
+name: Build and Test
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  prettier:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Prettier Check
+        run: yarn prettier:check
+
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Fetch all history for all tags and branches
+        run: git fetch
+
+      - name: Install Dependencies
+        run: yarn
+
+      - name: Build
+        run: yarn build:ci
+
+      - name: Test
+        run: yarn test:ci:changed

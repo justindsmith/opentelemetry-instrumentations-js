@@ -1,0 +1,37 @@
+name: Run Tests Daily
+
+on:
+  schedule:
+    # this is 4:17 PM UTC every day (pacific-time morning)
+    - cron:  '17 16 * * *'
+    
+  workflow_dispatch:
+
+jobs:
+
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [10.x, 12.x, 14.x, 16.x]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Use Node.js ${{ matrix.node_version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node_version }}
+
+      - name: Fetch all history for all tags and branches
+        run: git fetch
+
+      - name: Install Dependencies
+        run: yarn
+
+      - name: Build
+        run: yarn build:ci
+
+      - name: Test
+        run: yarn test:ci:all
