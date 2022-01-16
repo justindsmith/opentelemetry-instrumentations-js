@@ -62,7 +62,7 @@ export class RemixInstrumentation extends InstrumentationBase {
               return response;
             })
             .catch((error) => {
-              span.setAttribute("error", true);
+              addErrorAttributesToSpan(span, error);
               throw error;
             })
             .finally(() => {
@@ -94,7 +94,7 @@ export class RemixInstrumentation extends InstrumentationBase {
               return response;
             })
             .catch((error) => {
-              span.setAttribute("error", true);
+              addErrorAttributesToSpan(span, error);
               throw error;
             })
             .finally(() => {
@@ -132,4 +132,14 @@ const addResponseAttributesToSpan = (span: Span, response: Response) => {
   span.setAttributes({
     [SemanticAttributes.HTTP_STATUS_CODE]: response.status,
   });
+};
+
+const addErrorAttributesToSpan = (span: Span, error: Error) => {
+  span.setAttribute("error", true);
+  if (error.message) {
+    span.setAttribute(SemanticAttributes.EXCEPTION_MESSAGE, error.message);
+  }
+  if (error.stack) {
+    span.setAttribute(SemanticAttributes.EXCEPTION_STACKTRACE, error.stack);
+  }
 };
