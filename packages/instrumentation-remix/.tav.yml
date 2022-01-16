@@ -1,0 +1,4 @@
+'remix':
+  versions: ">=1.1.0"
+  commands:
+    - yarn test
