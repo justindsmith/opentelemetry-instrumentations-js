@@ -10,7 +10,7 @@ const instrumentation = new RemixInstrumentation();
 import { installGlobals } from "@remix-run/node";
 
 import * as remixServerRuntime from "@remix-run/server-runtime";
-import type { ServerBuild } from "@remix-run/server-runtime/build";
+import type { ServerBuild, ServerEntryModule } from "@remix-run/server-runtime/build";
 
 /** REMIX SERVER BUILD */
 
@@ -19,15 +19,9 @@ const routes: ServerBuild["routes"] = {
     id: "routes/parent",
     path: "/parent",
     module: {
-      loader: async () => {
-        return null;
-      },
-      action: async () => {
-        return null;
-      },
-      default: () => {
-        return React.createElement("div", {}, "routes/parent");
-      },
+      loader: () => "LOADER",
+      action: () => "ACTION",
+      default: () => React.createElement("div", {}, "routes/parent"),
     },
   },
   "routes/parent/child/$id": {
@@ -35,15 +29,9 @@ const routes: ServerBuild["routes"] = {
     parentId: "routes/parent",
     path: "/parent/child/:id",
     module: {
-      loader: async () => {
-        return null;
-      },
-      action: async () => {
-        return null;
-      },
-      default: () => {
-        return React.createElement("div", {}, "routes/parent/child/$id");
-      },
+      loader: () => "LOADER",
+      action: () => "ACTION",
+      default: () => React.createElement("div", {}, "routes/parent/child/$id"),
     },
   },
   "routes/throws-error": {
@@ -61,17 +49,22 @@ const routes: ServerBuild["routes"] = {
   },
 };
 
+const entryModule: ServerEntryModule = {
+  default: (request, responseStatusCode, responseHeaders, context) => {
+    if (new URL(request.url).search.includes("throwEntryModuleError")) {
+      throw new Error("oh no entry module");
+    }
+    return new Response(undefined, { status: responseStatusCode, headers: responseHeaders });
+  },
+};
+
 let build: ServerBuild = {
   routes,
   assets: {
     routes,
   },
   entry: {
-    module: {
-      default: () => {
-        return null;
-      },
-    },
+    module: entryModule,
   },
 } as unknown as ServerBuild;
 
@@ -93,31 +86,114 @@ describe("instrumentation-remix", () => {
     console.error = consoleErrorImpl;
   });
 
+  describe("requestHandler", () => {
+    it("handles thrown error from entry module", (done) => {
+      const request = new Request("http://localhost/parent?throwEntryModuleError", { method: "GET" });
+      requestHandler(request, {})
+        .then(() => {
+          const spans = getTestSpans();
+          expect(spans.length).toBe(2);
+
+          const [loaderSpan, requestHandlerSpan] = spans;
+
+          //
+          // Loader span
+          //
+
+          // General properties
+          expect(loaderSpan.name).toBe("LOADER routes/parent");
+
+          // Request attributes
+          expect(loaderSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
+          expect(loaderSpan.attributes[SemanticAttributes.HTTP_URL]).toBe(
+            "http://localhost/parent?throwEntryModuleError"
+          );
+
+          // Match attributes
+          expect(loaderSpan.attributes["match.pathname"]).toBe("/parent");
+          expect(loaderSpan.attributes["match.route.id"]).toBe("routes/parent");
+          expect(loaderSpan.attributes["match.route.path"]).toBe("/parent");
+
+          // Response attributes
+          expect(loaderSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
+
+          // Error attributes
+          expect(loaderSpan.attributes["error"]).toBeUndefined();
+
+          //
+          // Request Handler span
+          //
+
+          // General properties
+          expect(requestHandlerSpan.name).toBe("remix.requestHandler");
+
+          // Request attributes
+          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
+          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_URL]).toBe(
+            "http://localhost/parent?throwEntryModuleError"
+          );
+
+          // Response attributes
+          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(500);
+
+          // Error attributes
+          expect(requestHandlerSpan.attributes["error"]).toBeUndefined();
+        })
+        .catch((error) => {
+          done(error);
+        })
+        .finally(done);
+    });
+  });
+
   describe("loaders", () => {
     it("handles basic loader", (done) => {
       const request = new Request("http://localhost/parent", { method: "GET" });
       requestHandler(request, {})
         .then(() => {
           const spans = getTestSpans();
-          expect(spans.length).toBe(1);
+          expect(spans.length).toBe(2);
+
+          const [loaderSpan, requestHandlerSpan] = spans;
+
+          //
+          // Loader span
+          //
 
           // General properties
-          expect(spans[0].name).toBe("LOADER routes/parent");
+          expect(loaderSpan.name).toBe("LOADER routes/parent");
 
           // Request attributes
-          expect(spans[0].attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
-          expect(spans[0].attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent");
+          expect(loaderSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
+          expect(loaderSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent");
 
           // Match attributes
-          expect(spans[0].attributes["match.pathname"]).toBe("/parent");
-          expect(spans[0].attributes["match.route.id"]).toBe("routes/parent");
-          expect(spans[0].attributes["match.route.path"]).toBe("/parent");
+          expect(loaderSpan.attributes["match.pathname"]).toBe("/parent");
+          expect(loaderSpan.attributes["match.route.id"]).toBe("routes/parent");
+          expect(loaderSpan.attributes["match.route.path"]).toBe("/parent");
 
           // Response attributes
-          expect(spans[0].attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
+          expect(loaderSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
 
           // Error attributes
-          expect(spans[0].attributes["error"]).toBeUndefined();
+          expect(loaderSpan.attributes["error"]).toBeUndefined();
+
+          //
+          // Request Handler span
+          //
+
+          // General properties
+          expect(requestHandlerSpan.name).toBe("remix.requestHandler");
+
+          // Request attributes
+          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
+          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent");
+
+          // Response attributes
+          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
+
+          // Error attributes
+          expect(requestHandlerSpan.attributes["error"]).toBeUndefined();
         })
         .catch((error) => {
           done(error);
@@ -130,53 +206,72 @@ describe("instrumentation-remix", () => {
       requestHandler(request, {})
         .then(() => {
           const spans = getTestSpans();
-          expect(spans.length).toBe(2);
+          expect(spans.length).toBe(3);
+
+          const [parentSpan, childSpan, requestHandlerSpan] = spans;
 
           //
           // Parent span
           //
 
           // General properties
-          expect(spans[0].name).toBe("LOADER routes/parent");
+          expect(parentSpan.name).toBe("LOADER routes/parent");
 
           // Request attributes
-          expect(spans[0].attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
-          expect(spans[0].attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent/child/123");
+          expect(parentSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
+          expect(parentSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent/child/123");
 
           // Match attributes
-          expect(spans[0].attributes["match.pathname"]).toBe("/parent");
-          expect(spans[0].attributes["match.route.id"]).toBe("routes/parent");
-          expect(spans[0].attributes["match.route.path"]).toBe("/parent");
-          expect(spans[0].attributes["match.params.id"]).toBe("123");
+          expect(parentSpan.attributes["match.pathname"]).toBe("/parent");
+          expect(parentSpan.attributes["match.route.id"]).toBe("routes/parent");
+          expect(parentSpan.attributes["match.route.path"]).toBe("/parent");
+          expect(parentSpan.attributes["match.params.id"]).toBe("123");
 
           // Response attributes
-          expect(spans[0].attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
+          expect(parentSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
 
           // Error attributes
-          expect(spans[0].attributes["error"]).toBeUndefined();
+          expect(parentSpan.attributes["error"]).toBeUndefined();
 
           //
           // Child span
           //
 
           // General properties
-          expect(spans[1].name).toBe("LOADER routes/parent/child/$id");
+          expect(childSpan.name).toBe("LOADER routes/parent/child/$id");
 
           // Request attributes
-          expect(spans[1].attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
-          expect(spans[1].attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent/child/123");
+          expect(childSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
+          expect(childSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent/child/123");
 
           // Match attributes
-          expect(spans[1].attributes["match.pathname"]).toBe("/parent/child/123");
-          expect(spans[1].attributes["match.route.id"]).toBe("routes/parent/child/$id");
-          expect(spans[1].attributes["match.route.path"]).toBe("/parent/child/:id");
-          expect(spans[1].attributes["match.params.id"]).toBe("123");
+          expect(childSpan.attributes["match.pathname"]).toBe("/parent/child/123");
+          expect(childSpan.attributes["match.route.id"]).toBe("routes/parent/child/$id");
+          expect(childSpan.attributes["match.route.path"]).toBe("/parent/child/:id");
+          expect(childSpan.attributes["match.params.id"]).toBe("123");
 
           // Response attributes
-          expect(spans[1].attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
+          expect(childSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
 
           // Error attributes
-          expect(spans[1].attributes["error"]).toBeUndefined();
+          expect(childSpan.attributes["error"]).toBeUndefined();
+
+          //
+          // Request Handler span
+          //
+
+          // General properties
+          expect(requestHandlerSpan.name).toBe("remix.requestHandler");
+
+          // Request attributes
+          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
+          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent/child/123");
+
+          // Response attributes
+          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
+
+          // Error attributes
+          expect(requestHandlerSpan.attributes["error"]).toBeUndefined();
         })
         .catch((error) => {
           done(error);
@@ -189,27 +284,50 @@ describe("instrumentation-remix", () => {
       requestHandler(request, {})
         .then(() => {
           const spans = getTestSpans();
-          expect(spans.length).toBe(1);
+          expect(spans.length).toBe(2);
+
+          const [loaderSpan, requestHandlerSpan] = spans;
+
+          //
+          // Loader span
+          //
 
           // General properties
-          expect(spans[0].name).toBe("LOADER routes/throws-error");
+          expect(loaderSpan.name).toBe("LOADER routes/throws-error");
 
           // Request attributes
-          expect(spans[0].attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
-          expect(spans[0].attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/throws-error");
+          expect(loaderSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
+          expect(loaderSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/throws-error");
 
           // Match attributes
-          expect(spans[0].attributes["match.pathname"]).toBe("/throws-error");
-          expect(spans[0].attributes["match.route.id"]).toBe("routes/throws-error");
-          expect(spans[0].attributes["match.route.path"]).toBe("/throws-error");
+          expect(loaderSpan.attributes["match.pathname"]).toBe("/throws-error");
+          expect(loaderSpan.attributes["match.route.id"]).toBe("routes/throws-error");
+          expect(loaderSpan.attributes["match.route.path"]).toBe("/throws-error");
 
           // Response attributes
-          expect(spans[0].attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBeUndefined();
+          expect(loaderSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBeUndefined();
 
           // Error attributes
-          expect(spans[0].attributes["error"]).toBe(true);
-          expect(spans[0].attributes[SemanticAttributes.EXCEPTION_MESSAGE]).toBe("oh no loader");
-          expect(spans[0].attributes[SemanticAttributes.EXCEPTION_STACKTRACE]).toBeDefined();
+          expect(loaderSpan.attributes["error"]).toBe(true);
+          expect(loaderSpan.attributes[SemanticAttributes.EXCEPTION_MESSAGE]).toBe("oh no loader");
+          expect(loaderSpan.attributes[SemanticAttributes.EXCEPTION_STACKTRACE]).toBeDefined();
+
+          //
+          // Request Handler span
+          //
+
+          // General properties
+          expect(requestHandlerSpan.name).toBe("remix.requestHandler");
+
+          // Request attributes
+          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
+          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/throws-error");
+
+          // Response attributes
+          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(500);
+
+          // Error attributes
+          expect(requestHandlerSpan.attributes["error"]).toBeUndefined();
         })
         .catch((error) => {
           done(error);
@@ -224,55 +342,74 @@ describe("instrumentation-remix", () => {
       requestHandler(request, {})
         .then(() => {
           const spans = getTestSpans();
-          expect(spans.length).toBe(2);
+          expect(spans.length).toBe(3);
+
+          const [actionSpan, loaderSpan, requestHandlerSpan] = spans;
 
           //
           // Action span
           //
 
           // General properties
-          expect(spans[0].name).toBe("ACTION routes/parent");
+          expect(actionSpan.name).toBe("ACTION routes/parent");
 
           // Request attributes
-          expect(spans[0].attributes[SemanticAttributes.HTTP_METHOD]).toBe("POST");
-          expect(spans[0].attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent");
+          expect(actionSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("POST");
+          expect(actionSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent");
 
           // Match attributes
-          expect(spans[0].attributes["match.pathname"]).toBe("/parent");
-          expect(spans[0].attributes["match.route.id"]).toBe("routes/parent");
-          expect(spans[0].attributes["match.route.path"]).toBe("/parent");
+          expect(actionSpan.attributes["match.pathname"]).toBe("/parent");
+          expect(actionSpan.attributes["match.route.id"]).toBe("routes/parent");
+          expect(actionSpan.attributes["match.route.path"]).toBe("/parent");
 
           // Response attributes
-          expect(spans[0].attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
+          expect(actionSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
 
           // Error attributes
-          expect(spans[0].attributes["error"]).toBeUndefined();
-          expect(spans[0].attributes[SemanticAttributes.EXCEPTION_MESSAGE]).toBeUndefined();
-          expect(spans[0].attributes[SemanticAttributes.EXCEPTION_STACKTRACE]).toBeUndefined();
+          expect(actionSpan.attributes["error"]).toBeUndefined();
+          expect(actionSpan.attributes[SemanticAttributes.EXCEPTION_MESSAGE]).toBeUndefined();
+          expect(actionSpan.attributes[SemanticAttributes.EXCEPTION_STACKTRACE]).toBeUndefined();
 
           //
           // Loader span
           //
 
           // General properties
-          expect(spans[1].name).toBe("LOADER routes/parent");
+          expect(loaderSpan.name).toBe("LOADER routes/parent");
 
           // Request attributes
-          expect(spans[1].attributes[SemanticAttributes.HTTP_METHOD]).toBe("POST");
-          expect(spans[1].attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent");
+          expect(loaderSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("POST");
+          expect(loaderSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent");
 
           // Match attributes
-          expect(spans[1].attributes["match.pathname"]).toBe("/parent");
-          expect(spans[1].attributes["match.route.id"]).toBe("routes/parent");
-          expect(spans[1].attributes["match.route.path"]).toBe("/parent");
+          expect(loaderSpan.attributes["match.pathname"]).toBe("/parent");
+          expect(loaderSpan.attributes["match.route.id"]).toBe("routes/parent");
+          expect(loaderSpan.attributes["match.route.path"]).toBe("/parent");
 
           // Response attributes
-          expect(spans[1].attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
+          expect(loaderSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
 
           // Error attributes
-          expect(spans[1].attributes["error"]).toBeUndefined();
-          expect(spans[1].attributes[SemanticAttributes.EXCEPTION_MESSAGE]).toBeUndefined();
-          expect(spans[1].attributes[SemanticAttributes.EXCEPTION_STACKTRACE]).toBeUndefined();
+          expect(loaderSpan.attributes["error"]).toBeUndefined();
+          expect(loaderSpan.attributes[SemanticAttributes.EXCEPTION_MESSAGE]).toBeUndefined();
+          expect(loaderSpan.attributes[SemanticAttributes.EXCEPTION_STACKTRACE]).toBeUndefined();
+
+          //
+          // Request Handler span
+          //
+
+          // General properties
+          expect(requestHandlerSpan.name).toBe("remix.requestHandler");
+
+          // Request attributes
+          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("POST");
+          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent");
+
+          // Response attributes
+          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
+
+          // Error attributes
+          expect(requestHandlerSpan.attributes["error"]).toBeUndefined();
         })
         .catch((error) => {
           done(error);
@@ -285,27 +422,50 @@ describe("instrumentation-remix", () => {
       requestHandler(request, {})
         .then(() => {
           const spans = getTestSpans();
-          expect(spans.length).toBe(1);
+          expect(spans.length).toBe(2);
+
+          const [actionSpan, requestHandlerSpan] = spans;
+
+          //
+          // Action span
+          //
 
           // General properties
-          expect(spans[0].name).toBe("ACTION routes/throws-error");
+          expect(actionSpan.name).toBe("ACTION routes/throws-error");
 
           // Request attributes
-          expect(spans[0].attributes[SemanticAttributes.HTTP_METHOD]).toBe("POST");
-          expect(spans[0].attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/throws-error");
+          expect(actionSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("POST");
+          expect(actionSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/throws-error");
 
           // Match attributes
-          expect(spans[0].attributes["match.pathname"]).toBe("/throws-error");
-          expect(spans[0].attributes["match.route.id"]).toBe("routes/throws-error");
-          expect(spans[0].attributes["match.route.path"]).toBe("/throws-error");
+          expect(actionSpan.attributes["match.pathname"]).toBe("/throws-error");
+          expect(actionSpan.attributes["match.route.id"]).toBe("routes/throws-error");
+          expect(actionSpan.attributes["match.route.path"]).toBe("/throws-error");
 
           // Response attributes
-          expect(spans[0].attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBeUndefined();
+          expect(actionSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBeUndefined();
 
           // Error attributes
-          expect(spans[0].attributes["error"]).toBe(true);
-          expect(spans[0].attributes[SemanticAttributes.EXCEPTION_MESSAGE]).toBe("oh no action");
-          expect(spans[0].attributes[SemanticAttributes.EXCEPTION_STACKTRACE]).toBeDefined();
+          expect(actionSpan.attributes["error"]).toBe(true);
+          expect(actionSpan.attributes[SemanticAttributes.EXCEPTION_MESSAGE]).toBe("oh no action");
+          expect(actionSpan.attributes[SemanticAttributes.EXCEPTION_STACKTRACE]).toBeDefined();
+
+          //
+          // Request Handler span
+          //
+
+          // General properties
+          expect(requestHandlerSpan.name).toBe("remix.requestHandler");
+
+          // Request attributes
+          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("POST");
+          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/throws-error");
+
+          // Response attributes
+          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(500);
+
+          // Error attributes
+          expect(requestHandlerSpan.attributes["error"]).toBeUndefined();
         })
         .catch((error) => {
           done(error);

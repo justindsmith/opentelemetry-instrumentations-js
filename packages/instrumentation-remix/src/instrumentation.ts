@@ -7,6 +7,7 @@ import {
 } from "@opentelemetry/instrumentation";
 import { SemanticAttributes } from "@opentelemetry/semantic-conventions";
 
+import type * as remixRunServerRuntime from "@remix-run/server-runtime";
 import type * as remixRunServerRuntimeData from "@remix-run/server-runtime/data";
 
 import { VERSION } from "./version";
@@ -17,6 +18,23 @@ export class RemixInstrumentation extends InstrumentationBase {
   }
 
   protected init() {
+    const remixRunServerRuntimeModule = new InstrumentationNodeModuleDefinition<typeof remixRunServerRuntime>(
+      "@remix-run/server-runtime",
+      ["1.*"],
+      (moduleExports: typeof remixRunServerRuntime) => {
+        // callRouteLoader
+        if (isWrapped(moduleExports["createRequestHandler"])) {
+          this._unwrap(moduleExports, "createRequestHandler");
+        }
+        this._wrap(moduleExports, "createRequestHandler", this._patchCreateRequestHandler());
+
+        return moduleExports;
+      },
+      (moduleExports: typeof remixRunServerRuntime) => {
+        this._unwrap(moduleExports, "createRequestHandler");
+      }
+    );
+
     const remixRunServerRuntimeDataModule = new InstrumentationNodeModuleDefinition<typeof remixRunServerRuntimeData>(
       "@remix-run/server-runtime/data",
       ["1.*"],
@@ -40,7 +58,39 @@ export class RemixInstrumentation extends InstrumentationBase {
       }
     );
 
-    return [remixRunServerRuntimeDataModule];
+    return [remixRunServerRuntimeModule, remixRunServerRuntimeDataModule];
+  }
+
+  private _patchCreateRequestHandler(): (original: typeof remixRunServerRuntime.createRequestHandler) => any {
+    const plugin = this;
+    return function createRequestHandler(original) {
+      return function patchCreateRequestHandler(this: any): remixRunServerRuntime.RequestHandler {
+        const originalRequestHandler: remixRunServerRuntime.RequestHandler = original.apply(this, arguments as any);
+
+        return (request: Request, loadContext?: remixRunServerRuntime.AppLoadContext) => {
+          const span = plugin.tracer.startSpan(`remix.requestHandler`, {}, opentelemetry.context.active());
+          addRequestAttributesToSpan(span, request);
+
+          const originalResponsePromise = opentelemetry.context.with(
+            opentelemetry.trace.setSpan(opentelemetry.context.active(), span),
+            () => originalRequestHandler(request, loadContext)
+          );
+          return originalResponsePromise
+            .then((response) => {
+              addResponseAttributesToSpan(span, response);
+              return response;
+            })
+            .catch((error) => {
+              console.log("ERROR ERROR");
+              addErrorAttributesToSpan(span, error);
+              throw error;
+            })
+            .finally(() => {
+              span.end();
+            });
+        };
+      };
+    };
   }
 
   private _patchCallRouteLoader(): (original: typeof remixRunServerRuntimeData.callRouteLoader) => any {
