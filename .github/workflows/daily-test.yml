@@ -1,4 +1,4 @@
-name: Run Tests Daily
+name: Daily Tests
 
 on:
   schedule:
