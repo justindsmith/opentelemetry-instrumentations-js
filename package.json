@@ -13,8 +13,8 @@
     "prettier:check": "npx prettier@2.3.2 --config .prettierrc.yml --check --ignore-unknown \"**/*\"",
     "version:update": "lerna run version:update",
     "version": "git add packages/**/version.ts",
-    "publish:ci": "lerna publish --yes --allow-branch main --create-release github --conventionalCommits",
-    "publish:ci:prerelease": "lerna publish --yes --no-git-tag-version --no-push --no-changelog --dist-tag alpha"
+    "publish:ci": "lerna publish --yes --no-verify-access --allow-branch main --create-release github --conventionalCommits",
+    "publish:ci:prerelease": "lerna publish --yes --no-verify-access --no-git-tag-version --no-push --no-changelog --dist-tag alpha"
   },
   "devDependencies": {
     "lerna": "^3.22.1",
