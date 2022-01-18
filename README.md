@@ -17,7 +17,8 @@ The instrumentations in this repo are:
 ## Instrumentations
 | Instrumentation Package | Instrumented Lib | NPM |
 | --- | --- | --- |
-| [opentelemetry-instrumentation-remix](./packages/instrumentation-remix) | [`remix`](https://remix.run/) | [![NPM version](https://img.shields.io/npm/v/opentelemetry-instrumentation-remix.svg)](https://www.npmjs.com/package/opentelemetry-instrumentation-remix) [![remix-js downloads](https://img.shields.io/npm/dm/opentelemetry-instrumentation-remix.svg)]()|
+| [opentelemetry-instrumentation-remix](./packages/instrumentation-remix) | [`remix`](https://remix.run/) | [![NPM version](https://img.shields.io/npm/v/opentelemetry-instrumentation-remix.svg)](https://www.npmjs.com/package/opentelemetry-instrumentation-remix) [![opentelemetry-instrumentation-remix downloads](https://img.shields.io/npm/dm/opentelemetry-instrumentation-remix.svg)]()|
+| [opentelemetry-instrumentation-prisma-client](./packages/instrumentation-prisma-client) | [`@prisma/client`](https://github.com/prisma/prisma/tree/main/packages/client) | [![NPM version](https://img.shields.io/npm/v/opentelemetry-instrumentation-prisma-client.svg)](https://www.npmjs.com/package/opentelemetry-instrumentation-prisma-client) [![opentelemetry-instrumentation-prisma-client downloads](https://img.shields.io/npm/dm/opentelemetry-instrumentation-prisma-client.svg)]()|
 
 
 
