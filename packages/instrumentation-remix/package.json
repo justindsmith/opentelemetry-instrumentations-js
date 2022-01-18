@@ -26,7 +26,7 @@
     "test": "mocha",
     "test:jaeger": "OTEL_EXPORTER_JAEGER_AGENT_HOST=localhost mocha",
     "watch": "tsc -w",
-    "version:update": "node ../../scripts/version-update.js",
+    "version:update": "ts-node ../../scripts/version-update.ts",
     "test-all-versions": "tav",
     "test:ci": "yarn test-all-versions",
     "version": "yarn run version:update"
