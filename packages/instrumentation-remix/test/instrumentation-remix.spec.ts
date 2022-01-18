@@ -125,7 +125,7 @@ describe("instrumentation-remix", () => {
           //
 
           // General properties
-          expect(requestHandlerSpan.name).toBe("remix.requestHandler");
+          expect(requestHandlerSpan.name).toBe("remix.request");
 
           // Request attributes
           expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
@@ -183,7 +183,7 @@ describe("instrumentation-remix", () => {
           //
 
           // General properties
-          expect(requestHandlerSpan.name).toBe("remix.requestHandler");
+          expect(requestHandlerSpan.name).toBe("remix.request");
 
           // Request attributes
           expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
@@ -261,7 +261,7 @@ describe("instrumentation-remix", () => {
           //
 
           // General properties
-          expect(requestHandlerSpan.name).toBe("remix.requestHandler");
+          expect(requestHandlerSpan.name).toBe("remix.request");
 
           // Request attributes
           expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
@@ -317,7 +317,7 @@ describe("instrumentation-remix", () => {
           //
 
           // General properties
-          expect(requestHandlerSpan.name).toBe("remix.requestHandler");
+          expect(requestHandlerSpan.name).toBe("remix.request");
 
           // Request attributes
           expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
@@ -399,7 +399,7 @@ describe("instrumentation-remix", () => {
           //
 
           // General properties
-          expect(requestHandlerSpan.name).toBe("remix.requestHandler");
+          expect(requestHandlerSpan.name).toBe("remix.request");
 
           // Request attributes
           expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("POST");
@@ -455,7 +455,7 @@ describe("instrumentation-remix", () => {
           //
 
           // General properties
-          expect(requestHandlerSpan.name).toBe("remix.requestHandler");
+          expect(requestHandlerSpan.name).toBe("remix.request");
 
           // Request attributes
           expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("POST");
