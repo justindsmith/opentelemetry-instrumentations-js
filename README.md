@@ -1,7 +1,7 @@
 # opentelemetry-instrumentations-js
 
 
-[![Daily Tests](https://github.com/justindsmith/opentelemetry-instrumentations-js/actions/workflows/daily-test.yml/badge.svg)](http://google.com.au/)
+[![Daily Tests](https://github.com/justindsmith/opentelemetry-instrumentations-js/actions/workflows/daily-test.yml/badge.svg)](https://github.com/justindsmith/opentelemetry-instrumentations-js/actions/workflows/daily-test.yml)
 [![Apache 2.0 License](https://img.shields.io/badge/license-Apache_2.0-green.svg)](https://github.com/justindsmith/opentelemetry-instrumentations-js/blob/master/LICENSE)
 
 ---
