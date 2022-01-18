@@ -1,0 +1,72 @@
+{
+  "name": "opentelemetry-instrumentation-prisma-client",
+  "version": "0.0.0",
+  "description": "open telemetry instrumentation for the prisma auto-generated @prisma/client package",
+  "keywords": [
+    "prisma",
+    "opentelemetry"
+  ],
+  "homepage": "https://github.com/justindsmith/opentelemetry-instrumentations-js",
+  "license": "Apache-2.0",
+  "main": "dist/src/index.js",
+  "files": [
+    "dist/src/**/*.js",
+    "dist/src/**/*.d.ts",
+    "dist/src/**/*.js.map",
+    "LICENSE",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/justindsmith/opentelemetry-instrumentations-js.git"
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepare": "yarn run build",
+    "test": "mocha",
+    "test:jaeger": "OTEL_EXPORTER_JAEGER_AGENT_HOST=localhost mocha",
+    "watch": "tsc -w",
+    "version:update": "ts-node ../../scripts/version-update.ts",
+    "test-all-versions": "tav",
+    "test:ci": "yarn test-all-versions",
+    "version": "yarn run version:update"
+  },
+  "bugs": {
+    "url": "https://github.com/justindsmith/opentelemetry-instrumentations-js/issues"
+  },
+  "peerDependencies": {
+    "@opentelemetry/api": "^1.0.4"
+  },
+  "dependencies": {
+    "@opentelemetry/instrumentation": "^0.27.0",
+    "@opentelemetry/semantic-conventions": "^1.0.1"
+  },
+  "devDependencies": {
+    "@opentelemetry/api": "1.0.4",
+    "@opentelemetry/core": "1.0.1",
+    "@prisma/client": "^3.8.1",
+    "@types/lodash": "^4.14.168",
+    "@types/mocha": "^8.2.2",
+    "@types/sinon": "^9.0.11",
+    "expect": "^26.6.2",
+    "lodash": "^4.17.21",
+    "mocha": "^8.4.0",
+    "opentelemetry-instrumentation-mocha": "0.0.7-alpha.1",
+    "opentelemetry-instrumentation-testing-utils": "^0.27.0",
+    "sinon": "^9.2.4",
+    "test-all-versions": "^5.0.1",
+    "ts-node": "^10.4.0",
+    "typescript": "4.5.4"
+  },
+  "mocha": {
+    "extension": [
+      "ts"
+    ],
+    "spec": "test/**/*.spec.ts",
+    "require": [
+      "ts-node/register",
+      "opentelemetry-instrumentation-testing-utils",
+      "opentelemetry-instrumentation-mocha"
+    ]
+  }
+}

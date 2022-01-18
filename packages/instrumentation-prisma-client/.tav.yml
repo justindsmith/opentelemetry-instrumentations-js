@@ -1,0 +1,4 @@
+'@prisma/client':
+  versions: ">=3.8.0"
+  commands:
+    - yarn test

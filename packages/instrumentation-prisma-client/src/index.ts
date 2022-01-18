@@ -1,0 +1,1 @@
+export { PrimsaClientInstrumentation } from "./instrumentation";
