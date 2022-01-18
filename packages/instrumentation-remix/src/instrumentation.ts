@@ -12,6 +12,13 @@ import type * as remixRunServerRuntimeData from "@remix-run/server-runtime/data"
 
 import { VERSION } from "./version";
 
+const RemixSemanticAttributes = {
+  MATCH_PARAMS: "match.params",
+  MATCH_PATHNAME: "match.pathname",
+  MATCH_ROUTE_ID: "match.route.id",
+  MATCH_ROUTE_PATH: "match.route.path",
+};
+
 export class RemixInstrumentation extends InstrumentationBase {
   constructor(config: InstrumentationConfig = {}) {
     super("RemixInstrumentation", VERSION, config);
@@ -22,7 +29,7 @@ export class RemixInstrumentation extends InstrumentationBase {
       "@remix-run/server-runtime",
       ["1.*"],
       (moduleExports: typeof remixRunServerRuntime) => {
-        // callRouteLoader
+        // createRequestHandler
         if (isWrapped(moduleExports["createRequestHandler"])) {
           this._unwrap(moduleExports, "createRequestHandler");
         }
@@ -68,7 +75,13 @@ export class RemixInstrumentation extends InstrumentationBase {
         const originalRequestHandler: remixRunServerRuntime.RequestHandler = original.apply(this, arguments as any);
 
         return (request: Request, loadContext?: remixRunServerRuntime.AppLoadContext) => {
-          const span = plugin.tracer.startSpan(`remix.requestHandler`, {}, opentelemetry.context.active());
+          const span = plugin.tracer.startSpan(
+            `remix.request`,
+            {
+              attributes: { [SemanticAttributes.CODE_FUNCTION]: "requestHandler" },
+            },
+            opentelemetry.context.active()
+          );
           addRequestAttributesToSpan(span, request);
 
           const originalResponsePromise = opentelemetry.context.with(
@@ -81,7 +94,6 @@ export class RemixInstrumentation extends InstrumentationBase {
               return response;
             })
             .catch((error) => {
-              console.log("ERROR ERROR");
               addErrorAttributesToSpan(span, error);
               throw error;
             })
@@ -99,7 +111,11 @@ export class RemixInstrumentation extends InstrumentationBase {
       return function patchCallRouteLoader(this: any): Promise<Response> {
         const [params] = arguments as unknown as Parameters<typeof remixRunServerRuntimeData.callRouteLoader>;
 
-        const span = plugin.tracer.startSpan(`LOADER ${params.match.route.id}`, {}, opentelemetry.context.active());
+        const span = plugin.tracer.startSpan(
+          `LOADER ${params.match.route.id}`,
+          { attributes: { [SemanticAttributes.CODE_FUNCTION]: "loader" } },
+          opentelemetry.context.active()
+        );
 
         addRequestAttributesToSpan(span, params.request);
         addMatchAttributesToSpan(span, params.match);
@@ -129,8 +145,11 @@ export class RemixInstrumentation extends InstrumentationBase {
       return function patchCallRouteAction(this: any): Promise<Response> {
         const [params] = arguments as unknown as Parameters<typeof remixRunServerRuntimeData.callRouteAction>;
 
-        const span = plugin.tracer.startSpan(`ACTION ${params.match.route.id}`, {}, opentelemetry.context.active());
-        opentelemetry.trace.setSpan(opentelemetry.context.active(), span);
+        const span = plugin.tracer.startSpan(
+          `ACTION ${params.match.route.id}`,
+          { attributes: { [SemanticAttributes.CODE_FUNCTION]: "action" } },
+          opentelemetry.context.active()
+        );
 
         addRequestAttributesToSpan(span, params.request);
         addMatchAttributesToSpan(span, params.match);
@@ -168,13 +187,13 @@ const addMatchAttributesToSpan = (
   match: Parameters<typeof remixRunServerRuntimeData.callRouteLoader>[0]["match"]
 ) => {
   span.setAttributes({
-    ["match.pathname"]: match.pathname,
-    ["match.route.id"]: match.route.id,
-    ["match.route.path"]: match.route.path,
+    [RemixSemanticAttributes.MATCH_PATHNAME]: match.pathname,
+    [RemixSemanticAttributes.MATCH_ROUTE_ID]: match.route.id,
+    [RemixSemanticAttributes.MATCH_ROUTE_PATH]: match.route.path,
   });
 
   Object.keys(match.params).forEach((paramName) => {
-    span.setAttribute(`match.params.${paramName}`, match.params[paramName] || "(undefined)");
+    span.setAttribute(`${RemixSemanticAttributes.MATCH_PARAMS}.${paramName}`, match.params[paramName] || "(undefined)");
   });
 };
 
