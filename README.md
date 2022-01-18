@@ -23,4 +23,4 @@ The instrumentations in this repo are:
 
 ---
 
-This repository is inspired by / forked from the Aspect.io [opentelemetry-ext-js](https://github.com/aspecto-io/opentelemetry-ext-js/) repository.
+This repository is inspired by / forked from the [Aspecto](https://www.aspecto.io) [opentelemetry-ext-js](https://github.com/aspecto-io/opentelemetry-ext-js/) repository.
