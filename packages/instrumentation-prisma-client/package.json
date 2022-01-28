@@ -23,7 +23,7 @@
   "scripts": {
     "build": "tsc",
     "prepare": "yarn run build",
-    "test": "mocha",
+    "test": "echo \"No tests enabled\"",
     "test:jaeger": "OTEL_EXPORTER_JAEGER_AGENT_HOST=localhost mocha",
     "watch": "tsc -w",
     "version:update": "ts-node ../../scripts/version-update.ts",
