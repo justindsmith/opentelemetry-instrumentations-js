@@ -11,9 +11,9 @@ import type * as prismaClient from "@prisma/client";
 
 import { VERSION } from "./version";
 
-export class PrimsaClientInstrumentation extends InstrumentationBase {
+export class PrismaClientInstrumentation extends InstrumentationBase {
   constructor(config: InstrumentationConfig = {}) {
-    super("PrimsaClientInstrumentation", VERSION, config);
+    super("PrismaClientInstrumentation", VERSION, config);
   }
 
   protected init() {

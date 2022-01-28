@@ -1,1 +1,1 @@
-export { PrimsaClientInstrumentation } from "./instrumentation";
+export { PrismaClientInstrumentation } from "./instrumentation";
