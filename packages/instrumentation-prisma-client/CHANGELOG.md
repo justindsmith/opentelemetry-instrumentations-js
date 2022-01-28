@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.0.2](https://github.com/justindsmith/opentelemetry-instrumentations-js/compare/opentelemetry-instrumentation-prisma-client@0.0.1...opentelemetry-instrumentation-prisma-client@0.0.2) (2022-01-28)
+
+
+### Bug Fixes
+
+* **prisma-client:** fix instrumentation class name ([#7](https://github.com/justindsmith/opentelemetry-instrumentations-js/issues/7)) ([846ce67](https://github.com/justindsmith/opentelemetry-instrumentations-js/commit/846ce675b807a71e734c19336724c3a356b84a4a))
+
+
+
+
+
 ## 0.0.1 (2022-01-28)
 
 
