@@ -19,9 +19,35 @@ const RemixSemanticAttributes = {
   MATCH_ROUTE_PATH: "match.route.path",
 };
 
+export interface RemixInstrumentationConfig extends InstrumentationConfig {
+  /**
+   * Mapping of FormData field to span attribute names. Appends attribute as `formData.${name}`.
+   *
+   * Provide `true` value to use the FormData field name as the attribute name, or provide
+   * a `string` value to map the field name to a custom attribute name.
+   *
+   * @default { _action: "actionType" }
+   */
+  actionFormDataAttributes?: Record<string, boolean | string>;
+}
+
+const DEFAULT_CONFIG: RemixInstrumentationConfig = {
+  actionFormDataAttributes: {
+    _action: "actionType",
+  },
+};
+
 export class RemixInstrumentation extends InstrumentationBase {
-  constructor(config: InstrumentationConfig = {}) {
-    super("RemixInstrumentation", VERSION, config);
+  constructor(config: RemixInstrumentationConfig = {}) {
+    super("RemixInstrumentation", VERSION, Object.assign({}, DEFAULT_CONFIG, config));
+  }
+
+  override getConfig(): RemixInstrumentationConfig {
+    return this._config;
+  }
+
+  override setConfig(config: RemixInstrumentationConfig = {}) {
+    this._config = Object.assign({}, DEFAULT_CONFIG, config);
   }
 
   protected init() {
@@ -142,34 +168,73 @@ export class RemixInstrumentation extends InstrumentationBase {
   private _patchCallRouteAction(): (original: typeof remixRunServerRuntimeData.callRouteAction) => any {
     const plugin = this;
     return function callRouteAction(original) {
-      return function patchCallRouteAction(this: any): Promise<Response> {
-        const [params] = arguments as unknown as Parameters<typeof remixRunServerRuntimeData.callRouteAction>;
+      return async function patchCallRouteAction(this: any): Promise<Response> {
+        const [{ match, request }] = arguments as unknown as Parameters<
+          typeof remixRunServerRuntimeData.callRouteAction
+        >;
 
         const span = plugin.tracer.startSpan(
-          `ACTION ${params.match.route.id}`,
+          `ACTION ${match.route.id}`,
           { attributes: { [SemanticAttributes.CODE_FUNCTION]: "action" } },
           opentelemetry.context.active()
         );
 
-        addRequestAttributesToSpan(span, params.request);
-        addMatchAttributesToSpan(span, params.match);
+        addRequestAttributesToSpan(span, request);
+        addMatchAttributesToSpan(span, match);
 
-        return opentelemetry.context.with(opentelemetry.trace.setSpan(opentelemetry.context.active(), span), () => {
-          const originalResponsePromise: Promise<Response> = original.apply(this, arguments as any);
+        return opentelemetry.context.with(
+          opentelemetry.trace.setSpan(opentelemetry.context.active(), span),
+          async () => {
+            const originalResponsePromise: Promise<Response> = original.apply(this, arguments as any);
 
-          return originalResponsePromise
-            .then((response) => {
-              addResponseAttributesToSpan(span, response);
-              return response;
-            })
-            .catch((error) => {
-              addErrorAttributesToSpan(span, error);
-              throw error;
-            })
-            .finally(() => {
-              span.end();
-            });
-        });
+            return originalResponsePromise
+              .then(async (response) => {
+                addResponseAttributesToSpan(span, response);
+
+                try {
+                  const formData = await request.clone().formData();
+
+                  const { actionFormDataAttributes: actionFormAttributes } = plugin.getConfig();
+
+                  if (actionFormAttributes) {
+                    Object.keys(actionFormAttributes).forEach((actionFormAttributeName) => {
+                      const configValue = actionFormAttributes[actionFormAttributeName];
+
+                      // If the attribute is marked as false then don't process
+                      if (typeof configValue === "boolean" && configValue === false) {
+                        return;
+                      }
+
+                      // Get either the raw attribute name or the name override
+                      const keyName =
+                        typeof configValue === "boolean" && configValue === true
+                          ? actionFormAttributeName
+                          : configValue;
+
+                      // Extract the form value and set as span attribute
+                      const actionFormAttributeValue = formData.get(actionFormAttributeName);
+
+                      if (actionFormAttributeValue !== undefined && actionFormAttributeValue !== null) {
+                        span.setAttribute(`formData.${keyName}`, actionFormAttributeValue.toString());
+                      }
+                    });
+                  }
+                } catch {
+                  // Silently continue on any error. Typically happens because the action body cannot be processed
+                  // into FormData, in which case we should just continue.
+                }
+
+                return response;
+              })
+              .catch(async (error) => {
+                addErrorAttributesToSpan(span, error);
+                throw error;
+              })
+              .finally(() => {
+                span.end();
+              });
+          }
+        );
       };
     };
   }
