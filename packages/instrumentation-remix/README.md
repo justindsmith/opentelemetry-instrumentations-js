@@ -33,6 +33,11 @@ registerInstrumentations({
   ]
 });
 ```
+## Configuration
+
+| Name                     | Type                                               | Default Value               | Description                                        |  |
+|--------------------------|----------------------------------------------------|-----------------------------|----------------------------------------------------|--|
+| actionFormDataAttributes | <code>Record<string, boolean &#124; string></code> | `{ _action: "actionType" }` | Mapping of FormData field to span attribute names. |  |
 
 ## Instrumentation
 
@@ -85,19 +90,20 @@ Emitted for every `action` called.
 | `ACTION [routeId]` | `ACTION routes/jokes/new` |
 
 
-| Attribute                  | Description                        | Example Value                                                   |
-|----------------------------|------------------------------------|-----------------------------------------------------------------|
-| `code.function`            | Name of executed function          | `"action"`                                                      |
-| `http.method`              | HTTP method                        | `"POST"`                                                        |
-| `http.url`                 | HTTP URL                           | `"https://remix.jokes/jokes/new?_data=routes%2Fjokes%2Fnew"`    |
-| `http.status_code`         | Response status code               | `200`                                                           |
-| `match.pathname`           | Remix matched pathname             | `"/jokes/23fc7bcf-2d35-4c70-877f-338eca1fd3ef"`                 |
-| `match.route.id`           | Remix matched route id             | `"routes/jokes/$jokeId"`                                        |
-| `match.route.path`         | Remix matched route path           | `":jokeId"`                                                     |
-| `match.params.[paramName]` | Value for each remix matched param | `[match.params.jokeId]: "23fc7bcf-2d35-4c70-877f-338eca1fd3ef"` |
-| `error`                    | Added if error detected            | `true`                                                          |
-| `exception.message`        | Error message, if applicable       | `"Kaboom!"`                                                     |
-| `exception.stacktrace`     | Error stacktrace, if applicable    | [stacktrace]                                                    |
+| Attribute                  | Description                              | Example Value                                                   |
+|----------------------------|------------------------------------------|-----------------------------------------------------------------|
+| `code.function`            | Name of executed function                | `"action"`                                                      |
+| `http.method`              | HTTP method                              | `"POST"`                                                        |
+| `http.url`                 | HTTP URL                                 | `"https://remix.jokes/jokes/new?_data=routes%2Fjokes%2Fnew"`    |
+| `http.status_code`         | Response status code                     | `200`                                                           |
+| `match.pathname`           | Remix matched pathname                   | `"/jokes/23fc7bcf-2d35-4c70-877f-338eca1fd3ef"`                 |
+| `match.route.id`           | Remix matched route id                   | `"routes/jokes/$jokeId"`                                        |
+| `match.route.path`         | Remix matched route path                 | `":jokeId"`                                                     |
+| `match.params.[paramName]` | Value for each remix matched param       | `[match.params.jokeId]: "23fc7bcf-2d35-4c70-877f-338eca1fd3ef"` |
+| `formData.[fieldName]`     | Value for each configured FormData field | `[formData.actionType]: "createJoke"`                           |
+| `error`                    | Added if error detected                  | `true`                                                          |
+| `exception.message`        | Error message, if applicable             | `"Kaboom!"`                                                     |
+| `exception.stacktrace`     | Error stacktrace, if applicable          | [stacktrace]                                                    |
 
 ## License
 Apache 2.0 - See [LICENSE](https://github.com/justindsmith/opentelemetry-instrumentation-js/blob/main/LICENSE) for more information.

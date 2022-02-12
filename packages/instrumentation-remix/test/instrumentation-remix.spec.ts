@@ -5,7 +5,13 @@ import { RemixInstrumentation } from "../src";
 import { SemanticAttributes } from "@opentelemetry/semantic-conventions";
 import { getTestSpans } from "opentelemetry-instrumentation-testing-utils";
 
-const instrumentation = new RemixInstrumentation();
+const instrumentation = new RemixInstrumentation({
+  actionFormDataAttributes: {
+    _action: "actionType",
+    foo: false,
+    num: true,
+  },
+});
 
 import { installGlobals } from "@remix-run/node";
 
@@ -352,6 +358,99 @@ describe("instrumentation-remix", () => {
 
           // General properties
           expect(actionSpan.name).toBe("ACTION routes/parent");
+
+          // Request attributes
+          expect(actionSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("POST");
+          expect(actionSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent");
+
+          // Match attributes
+          expect(actionSpan.attributes["match.pathname"]).toBe("/parent");
+          expect(actionSpan.attributes["match.route.id"]).toBe("routes/parent");
+          expect(actionSpan.attributes["match.route.path"]).toBe("/parent");
+
+          // Response attributes
+          expect(actionSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
+
+          // Error attributes
+          expect(actionSpan.attributes["error"]).toBeUndefined();
+          expect(actionSpan.attributes[SemanticAttributes.EXCEPTION_MESSAGE]).toBeUndefined();
+          expect(actionSpan.attributes[SemanticAttributes.EXCEPTION_STACKTRACE]).toBeUndefined();
+
+          //
+          // Loader span
+          //
+
+          // General properties
+          expect(loaderSpan.name).toBe("LOADER routes/parent");
+
+          // Request attributes
+          expect(loaderSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("POST");
+          expect(loaderSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent");
+
+          // Match attributes
+          expect(loaderSpan.attributes["match.pathname"]).toBe("/parent");
+          expect(loaderSpan.attributes["match.route.id"]).toBe("routes/parent");
+          expect(loaderSpan.attributes["match.route.path"]).toBe("/parent");
+
+          // Response attributes
+          expect(loaderSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
+
+          // Error attributes
+          expect(loaderSpan.attributes["error"]).toBeUndefined();
+          expect(loaderSpan.attributes[SemanticAttributes.EXCEPTION_MESSAGE]).toBeUndefined();
+          expect(loaderSpan.attributes[SemanticAttributes.EXCEPTION_STACKTRACE]).toBeUndefined();
+
+          //
+          // Request Handler span
+          //
+
+          // General properties
+          expect(requestHandlerSpan.name).toBe("remix.request");
+
+          // Request attributes
+          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("POST");
+          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent");
+
+          // Response attributes
+          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
+
+          // Error attributes
+          expect(requestHandlerSpan.attributes["error"]).toBeUndefined();
+        })
+        .catch((error) => {
+          done(error);
+        })
+        .finally(done);
+    });
+
+    it("extracts action formData fields from form data", (done) => {
+      const body = new FormData();
+      body.append("_action", "myAction");
+      body.append("foo", "bar");
+      body.append("num", "123");
+      const request = new Request("http://localhost/parent", {
+        method: "POST",
+        body,
+      });
+
+      requestHandler(request, {})
+        .then(() => {
+          const spans = getTestSpans();
+          expect(spans.length).toBe(3);
+
+          const [actionSpan, loaderSpan, requestHandlerSpan] = spans;
+
+          //
+          // Action span
+          //
+
+          // General properties
+          expect(actionSpan.name).toBe("ACTION routes/parent");
+
+          // Form attributes
+          expect(actionSpan.attributes["formData.actionType"]).toBe("myAction");
+          expect(actionSpan.attributes["formData.foo"]).toBeUndefined();
+          expect(actionSpan.attributes["formData.num"]).toBe("123");
 
           // Request attributes
           expect(actionSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("POST");
