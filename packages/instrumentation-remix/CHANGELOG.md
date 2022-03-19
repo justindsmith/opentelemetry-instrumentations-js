@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.0.5](https://github.com/justindsmith/opentelemetry-instrumentations-js/compare/opentelemetry-instrumentation-remix@0.0.4...opentelemetry-instrumentation-remix@0.0.5) (2022-03-19)
+
+
+### Bug Fixes
+
+* **remix:** use @remix-run/server-runtime for version testing ([#12](https://github.com/justindsmith/opentelemetry-instrumentations-js/issues/12)) ([6e514de](https://github.com/justindsmith/opentelemetry-instrumentations-js/commit/6e514dea8cb65c4f064341b2f5be6993743601b9))
+
+
+### Features
+
+* **remix:** add FormData field attributes to actions ([#10](https://github.com/justindsmith/opentelemetry-instrumentations-js/issues/10)) ([bb2f0f3](https://github.com/justindsmith/opentelemetry-instrumentations-js/commit/bb2f0f3872359bd66fb8331752dc42660bb8170c)), closes [#8](https://github.com/justindsmith/opentelemetry-instrumentations-js/issues/8)
+
+
+
+
+
 ## [0.0.4](https://github.com/justindsmith/opentelemetry-instrumentations-js/compare/opentelemetry-instrumentation-remix@0.0.3...opentelemetry-instrumentation-remix@0.0.4) (2022-01-28)
 
 **Note:** Version bump only for package opentelemetry-instrumentation-remix
