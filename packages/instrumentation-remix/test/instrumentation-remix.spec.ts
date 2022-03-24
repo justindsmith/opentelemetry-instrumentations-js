@@ -4,6 +4,7 @@ import expect from "expect";
 import { RemixInstrumentation } from "../src";
 import { SemanticAttributes } from "@opentelemetry/semantic-conventions";
 import { getTestSpans } from "opentelemetry-instrumentation-testing-utils";
+import * as semver from "semver";
 
 const instrumentation = new RemixInstrumentation({
   actionFormDataAttributes: {
@@ -17,6 +18,7 @@ import { installGlobals } from "@remix-run/node";
 
 import * as remixServerRuntime from "@remix-run/server-runtime";
 import type { ServerBuild, ServerEntryModule } from "@remix-run/server-runtime/build";
+const remixServerRuntimePackage = require("@remix-run/server-runtime/package.json");
 
 /** REMIX SERVER BUILD */
 
@@ -74,6 +76,24 @@ let build: ServerBuild = {
   },
 } as unknown as ServerBuild;
 
+/**
+ * The `remixServerRuntime.createRequestHandler` function definition can change across versions. This
+ * function will provide the proper signature based on version to creat the request handler.
+ *
+ * This versions used here should mirror the versions defined in `.tav.yml`.
+ */
+function createRequestHandlerForPackageVersion(version: string): remixServerRuntime.RequestHandler {
+  if (semver.satisfies(version, "1.1.0 - 1.3.2")) {
+    // Version <=1.3.2 uses a configuration object
+    return (remixServerRuntime.createRequestHandler as any)(build, {}) as remixServerRuntime.RequestHandler;
+  } else if (semver.satisfies(version, ">=1.3.3")) {
+    // Version >=1.3.3 uses a "mode" param of type "production" | "deployment" | "test"
+    return (remixServerRuntime.createRequestHandler as any)(build, "test") as remixServerRuntime.RequestHandler;
+  } else {
+    throw new Error("Unsupported @remix-run/server-runtime version");
+  }
+}
+
 /** TESTS */
 
 describe("instrumentation-remix", () => {
@@ -82,7 +102,7 @@ describe("instrumentation-remix", () => {
   before(() => {
     installGlobals();
     instrumentation.enable();
-    requestHandler = remixServerRuntime.createRequestHandler(build, {});
+    requestHandler = createRequestHandlerForPackageVersion(remixServerRuntimePackage.version);
     consoleErrorImpl = console.error;
     console.error = () => {};
   });
