@@ -172,14 +172,14 @@ export class RemixInstrumentation extends InstrumentationBase {
         const [{ match, request }] = arguments as unknown as Parameters<
           typeof remixRunServerRuntimeData.callRouteAction
         >;
-
+        const clonedRequest = request.clone();
         const span = plugin.tracer.startSpan(
           `ACTION ${match.route.id}`,
           { attributes: { [SemanticAttributes.CODE_FUNCTION]: "action" } },
           opentelemetry.context.active()
         );
 
-        addRequestAttributesToSpan(span, request);
+        addRequestAttributesToSpan(span, clonedRequest);
         addMatchAttributesToSpan(span, match);
 
         return opentelemetry.context.with(
@@ -192,33 +192,14 @@ export class RemixInstrumentation extends InstrumentationBase {
                 addResponseAttributesToSpan(span, response);
 
                 try {
-                  const formData = await request.clone().formData();
-
+                  const formData = await clonedRequest.formData();
                   const { actionFormDataAttributes: actionFormAttributes } = plugin.getConfig();
-
-                  if (actionFormAttributes) {
-                    Object.keys(actionFormAttributes).forEach((actionFormAttributeName) => {
-                      const configValue = actionFormAttributes[actionFormAttributeName];
-
-                      // If the attribute is marked as false then don't process
-                      if (typeof configValue === "boolean" && configValue === false) {
-                        return;
-                      }
-
-                      // Get either the raw attribute name or the name override
-                      const keyName =
-                        typeof configValue === "boolean" && configValue === true
-                          ? actionFormAttributeName
-                          : configValue;
-
-                      // Extract the form value and set as span attribute
-                      const actionFormAttributeValue = formData.get(actionFormAttributeName);
-
-                      if (actionFormAttributeValue !== undefined && actionFormAttributeValue !== null) {
-                        span.setAttribute(`formData.${keyName}`, actionFormAttributeValue.toString());
-                      }
-                    });
-                  }
+                  formData.forEach((value, key) => {
+                    if (actionFormAttributes[key] !== false) {
+                      const keyName = actionFormAttributes[key] === true ? key : actionFormAttributes[key];
+                      span.setAttribute(`formData.${keyName}`, value.toString());
+                    }
+                  });
                 } catch {
                   // Silently continue on any error. Typically happens because the action body cannot be processed
                   // into FormData, in which case we should just continue.
