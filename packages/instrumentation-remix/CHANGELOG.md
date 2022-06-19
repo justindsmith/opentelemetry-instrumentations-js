@@ -3,6 +3,27 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.1.0](https://github.com/justindsmith/opentelemetry-instrumentations-js/compare/opentelemetry-instrumentation-remix@0.0.5...opentelemetry-instrumentation-remix@0.1.0) (2022-06-19)
+
+
+### Bug Fixes
+
+* **remix:** fix tests to support new createRequestHandler definition ([#13](https://github.com/justindsmith/opentelemetry-instrumentations-js/issues/13)) ([36b1864](https://github.com/justindsmith/opentelemetry-instrumentations-js/commit/36b186482c8ea9dace0a5aadc7cf7fabd7ef4200))
+
+
+### Features
+
+* **remix:** update form handling to default include form attributes ([#14](https://github.com/justindsmith/opentelemetry-instrumentations-js/issues/14)) ([84d1edd](https://github.com/justindsmith/opentelemetry-instrumentations-js/commit/84d1edd8754bfb6cfa4e17c7c983231352f0fc70))
+
+
+### BREAKING CHANGES
+
+* **remix:** form attributes now default to being included, use the `actionFormDataAttributes` to exclude attributes
+
+
+
+
+
 ## [0.0.5](https://github.com/justindsmith/opentelemetry-instrumentations-js/compare/opentelemetry-instrumentation-remix@0.0.4...opentelemetry-instrumentation-remix@0.0.5) (2022-03-19)
 
 
