@@ -17,7 +17,7 @@ const instrumentation = new RemixInstrumentation({
 import { installGlobals } from "@remix-run/node";
 
 import * as remixServerRuntime from "@remix-run/server-runtime";
-import type { ServerBuild, ServerEntryModule } from "@remix-run/server-runtime/build";
+import type { ServerBuild, ServerEntryModule } from "@remix-run/server-runtime";
 const remixServerRuntimePackage = require("@remix-run/server-runtime/package.json");
 
 /** REMIX SERVER BUILD */
