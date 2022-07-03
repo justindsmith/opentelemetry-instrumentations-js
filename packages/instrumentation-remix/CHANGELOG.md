@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.1.1](https://github.com/justindsmith/opentelemetry-instrumentations-js/compare/opentelemetry-instrumentation-remix@0.1.0...opentelemetry-instrumentation-remix@0.1.1) (2022-07-03)
+
+
+### Bug Fixes
+
+* **remix:** update remix to 1.6.3; fix changed server-runtime data import paths ([#15](https://github.com/justindsmith/opentelemetry-instrumentations-js/issues/15)) ([4bd5cfb](https://github.com/justindsmith/opentelemetry-instrumentations-js/commit/4bd5cfb9e356d2d79413d1b72aa6fce19c0e4d10))
+
+
+
+
+
 # [0.1.0](https://github.com/justindsmith/opentelemetry-instrumentations-js/compare/opentelemetry-instrumentation-remix@0.0.5...opentelemetry-instrumentation-remix@0.1.0) (2022-06-19)
 
 
