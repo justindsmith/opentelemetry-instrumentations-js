@@ -8,7 +8,7 @@ import {
 import { SemanticAttributes } from "@opentelemetry/semantic-conventions";
 
 import type * as remixRunServerRuntime from "@remix-run/server-runtime";
-import type * as remixRunServerRuntimeData from "@remix-run/server-runtime/data";
+import type * as remixRunServerRuntimeData from "@remix-run/server-runtime/dist/data";
 
 import { VERSION } from "./version";
 
@@ -68,9 +68,37 @@ export class RemixInstrumentation extends InstrumentationBase {
       }
     );
 
-    const remixRunServerRuntimeDataModule = new InstrumentationNodeModuleDefinition<typeof remixRunServerRuntimeData>(
+    /*
+     * Before Remix v1.6.2 we needed to wrap `@remix-run/server-runtime/data` module import instead of
+     * `@remix-run/server-runtime/dist/data` module import. The wrapping logic is all the same though.
+     */
+    const remixRunServerRuntimeDataPre_1_6_2_Module = new InstrumentationNodeModuleDefinition<
+      typeof remixRunServerRuntimeData
+    >(
       "@remix-run/server-runtime/data",
-      ["1.*"],
+      ["1.0 - 1.6.1"],
+      (moduleExports: typeof remixRunServerRuntimeData) => {
+        // callRouteLoader
+        if (isWrapped(moduleExports["callRouteLoader"])) {
+          this._unwrap(moduleExports, "callRouteLoader");
+        }
+        this._wrap(moduleExports, "callRouteLoader", this._patchCallRouteLoader());
+
+        // callRouteAction
+        if (isWrapped(moduleExports["callRouteAction"])) {
+          this._unwrap(moduleExports, "callRouteAction");
+        }
+        this._wrap(moduleExports, "callRouteAction", this._patchCallRouteAction());
+        return moduleExports;
+      },
+      (moduleExports: typeof remixRunServerRuntimeData) => {
+        this._unwrap(moduleExports, "callRouteLoader");
+        this._unwrap(moduleExports, "callRouteAction");
+      }
+    );
+    const remixRunServerRuntimeDataModule = new InstrumentationNodeModuleDefinition<typeof remixRunServerRuntimeData>(
+      "@remix-run/server-runtime/dist/data",
+      ["1.6.2 - 1.*"],
       (moduleExports: typeof remixRunServerRuntimeData) => {
         // callRouteLoader
         if (isWrapped(moduleExports["callRouteLoader"])) {
@@ -91,7 +119,7 @@ export class RemixInstrumentation extends InstrumentationBase {
       }
     );
 
-    return [remixRunServerRuntimeModule, remixRunServerRuntimeDataModule];
+    return [remixRunServerRuntimeModule, remixRunServerRuntimeDataPre_1_6_2_Module, remixRunServerRuntimeDataModule];
   }
 
   private _patchCreateRequestHandler(): (original: typeof remixRunServerRuntime.createRequestHandler) => any {
