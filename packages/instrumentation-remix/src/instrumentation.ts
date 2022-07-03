@@ -7,7 +7,7 @@ import {
 } from "@opentelemetry/instrumentation";
 import { SemanticAttributes } from "@opentelemetry/semantic-conventions";
 
-import * as remixRunServerRuntime from "@remix-run/server-runtime";
+import type * as remixRunServerRuntime from "@remix-run/server-runtime";
 import type * as remixRunServerRuntimeData from "@remix-run/server-runtime/dist/data";
 
 import { VERSION } from "./version";
@@ -69,7 +69,7 @@ export class RemixInstrumentation extends InstrumentationBase {
     );
 
     /*
-     * Before v1.6.2 we needed to wrap `@remix-run/server-runtime/data` module import instead of
+     * Before Remix v1.6.2 we needed to wrap `@remix-run/server-runtime/data` module import instead of
      * `@remix-run/server-runtime/dist/data` module import. The wrapping logic is all the same though.
      */
     const remixRunServerRuntimeDataPre_1_6_2_Module = new InstrumentationNodeModuleDefinition<
