@@ -1,6 +1,6 @@
 {
   "name": "opentelemetry-instrumentation-prisma-client",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "open telemetry instrumentation for the prisma auto-generated @prisma/client package",
   "keywords": [
     "prisma",
