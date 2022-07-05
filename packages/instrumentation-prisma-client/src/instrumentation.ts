@@ -11,9 +11,28 @@ import type * as prismaClient from "@prisma/client";
 
 import { VERSION } from "./version";
 
+export interface PrismaClientInstrumentationConfig extends InstrumentationConfig {
+  /**
+   * Provide string value for db.system Span attribute.
+   */
+  spanAttributeDbSystem?: string;
+  /**
+   * Provide string value for db.connection_string Span attribute.
+   */
+  spanAttributeDbConnectionString?: string;
+  /**
+   * Provide string value for db.connection_string Span attribute.
+   */
+  spanAttributePeerService?: string;
+}
+
 export class PrismaClientInstrumentation extends InstrumentationBase {
-  constructor(config: InstrumentationConfig = {}) {
+  constructor(config: PrismaClientInstrumentationConfig = {}) {
     super("PrismaClientInstrumentation", VERSION, config);
+  }
+
+  override getConfig(): PrismaClientInstrumentationConfig {
+    return this._config;
   }
 
   protected init() {
@@ -45,19 +64,31 @@ export class PrismaClientInstrumentation extends InstrumentationBase {
     return function (original: () => any) {
       return function patchedRequest(this: any) {
         const args = arguments[0] as {
-          clientMethod: string;
+          action: string;
+          args: Map<String, String>;
         };
 
+        const {
+          spanAttributeDbSystem: dbSystem,
+          spanAttributeDbConnectionString: dbConnectionString,
+          spanAttributePeerService: peerService
+        } = plugin.getConfig()
+
         const span = plugin.tracer.startSpan(
-          args.clientMethod,
+          args.action,
           {
             kind: SpanKind.CLIENT,
             attributes: {
               component: "prisma",
+              [SemanticAttributes.DB_STATEMENT]: args.args['query'],
+              [SemanticAttributes.DB_SYSTEM]: dbSystem,
+              [SemanticAttributes.DB_CONNECTION_STRING]: dbConnectionString,
+              [SemanticAttributes.PEER_SERVICE]: peerService
             },
           },
           opentelemetry.context.active()
         );
+
 
         return opentelemetry.context.with(opentelemetry.trace.setSpan(opentelemetry.context.active(), span), () => {
           const promiseResponse = original.apply(this, arguments as any) as Promise<any>;
