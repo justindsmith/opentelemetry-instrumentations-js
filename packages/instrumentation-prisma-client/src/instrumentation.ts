@@ -1,4 +1,4 @@
-import opentelemetry, { SpanKind } from "@opentelemetry/api";
+import opentelemetry, { Attributes, SpanKind } from "@opentelemetry/api";
 import {
   InstrumentationBase,
   InstrumentationConfig,
@@ -13,17 +13,9 @@ import { VERSION } from "./version";
 
 export interface PrismaClientInstrumentationConfig extends InstrumentationConfig {
   /**
-   * Provide string value for db.system Span attribute.
+   * Attibute set to be added to each database span.
    */
-  spanAttributeDbSystem?: string;
-  /**
-   * Provide string value for db.connection_string Span attribute.
-   */
-  spanAttributeDbConnectionString?: string;
-  /**
-   * Provide string value for db.connection_string Span attribute.
-   */
-  spanAttributePeerService?: string;
+  spanAttributes?: Attributes
 }
 
 export class PrismaClientInstrumentation extends InstrumentationBase {
@@ -64,30 +56,33 @@ export class PrismaClientInstrumentation extends InstrumentationBase {
     return function (original: () => any) {
       return function patchedRequest(this: any) {
         const args = arguments[0] as {
-          action: string;
-          args: Map<String, String>;
+          clientMethod: string;
+          args: {
+            query: string;
+            parameters: {
+              values: Array<string>;
+              __prismaRawParameters__: boolean;
+            }
+          }
         };
 
-        const {
-          spanAttributeDbSystem: dbSystem,
-          spanAttributeDbConnectionString: dbConnectionString,
-          spanAttributePeerService: peerService
-        } = plugin.getConfig()
-
         const span = plugin.tracer.startSpan(
-          args.action,
+          args.clientMethod,
           {
             kind: SpanKind.CLIENT,
             attributes: {
               component: "prisma",
-              [SemanticAttributes.DB_STATEMENT]: args.args['query'],
-              [SemanticAttributes.DB_SYSTEM]: dbSystem,
-              [SemanticAttributes.DB_CONNECTION_STRING]: dbConnectionString,
-              [SemanticAttributes.PEER_SERVICE]: peerService
+              [SemanticAttributes.DB_STATEMENT]: args.args.query,
             },
           },
           opentelemetry.context.active()
         );
+
+        // Add the supplied attributes from instrumentation configuration
+        const {
+          spanAttributes: spanAttributes,
+        } = plugin.getConfig()
+        span.setAttributes(spanAttributes)
 
 
         return opentelemetry.context.with(opentelemetry.trace.setSpan(opentelemetry.context.active(), span), () => {
