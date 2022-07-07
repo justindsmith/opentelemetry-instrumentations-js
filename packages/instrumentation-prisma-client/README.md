@@ -31,5 +31,11 @@ registerInstrumentations({
 });
 ```
 
+## Configuration
+
+| Name                     | Type                                               | Default Value               | Description                                        |  |
+|--------------------------|----------------------------------------------------|-----------------------------|----------------------------------------------------|--|
+| spanAttributes | <code>Attributes</code> | `undefined` | An optional set of Opentelemetry Attributes to be added to the span. For example `spanAttributes: {[SemanticAttributes.DB_SYSTEM]: 'postgresql'}` |  |
+
 ## License
 Apache 2.0 - See [LICENSE](https://github.com/justindsmith/opentelemetry-instrumentation-js/blob/main/LICENSE) for more information.

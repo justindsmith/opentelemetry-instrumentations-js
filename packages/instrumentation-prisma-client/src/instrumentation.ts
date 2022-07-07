@@ -1,4 +1,4 @@
-import opentelemetry, { SpanKind } from "@opentelemetry/api";
+import opentelemetry, { Attributes, SpanKind } from "@opentelemetry/api";
 import {
   InstrumentationBase,
   InstrumentationConfig,
@@ -11,9 +11,20 @@ import type * as prismaClient from "@prisma/client";
 
 import { VERSION } from "./version";
 
+export interface PrismaClientInstrumentationConfig extends InstrumentationConfig {
+  /**
+   * Attibute set to be added to each database span.
+   */
+  spanAttributes?: Attributes;
+}
+
 export class PrismaClientInstrumentation extends InstrumentationBase {
-  constructor(config: InstrumentationConfig = {}) {
+  constructor(config: PrismaClientInstrumentationConfig = {}) {
     super("PrismaClientInstrumentation", VERSION, config);
+  }
+
+  override getConfig(): PrismaClientInstrumentationConfig {
+    return this._config;
   }
 
   protected init() {
@@ -46,6 +57,13 @@ export class PrismaClientInstrumentation extends InstrumentationBase {
       return function patchedRequest(this: any) {
         const args = arguments[0] as {
           clientMethod: string;
+          args: {
+            query: string;
+            parameters: {
+              values: Array<string>;
+              __prismaRawParameters__: boolean;
+            };
+          };
         };
 
         const span = plugin.tracer.startSpan(
@@ -54,10 +72,15 @@ export class PrismaClientInstrumentation extends InstrumentationBase {
             kind: SpanKind.CLIENT,
             attributes: {
               component: "prisma",
+              [SemanticAttributes.DB_STATEMENT]: args.args.query,
             },
           },
           opentelemetry.context.active()
         );
+
+        // Add the supplied attributes from instrumentation configuration
+        const { spanAttributes: spanAttributes } = plugin.getConfig();
+        span.setAttributes(spanAttributes);
 
         return opentelemetry.context.with(opentelemetry.trace.setSpan(opentelemetry.context.active(), span), () => {
           const promiseResponse = original.apply(this, arguments as any) as Promise<any>;
