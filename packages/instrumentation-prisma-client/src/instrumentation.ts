@@ -15,7 +15,7 @@ export interface PrismaClientInstrumentationConfig extends InstrumentationConfig
   /**
    * Attibute set to be added to each database span.
    */
-  spanAttributes?: Attributes
+  spanAttributes?: Attributes;
 }
 
 export class PrismaClientInstrumentation extends InstrumentationBase {
@@ -62,8 +62,8 @@ export class PrismaClientInstrumentation extends InstrumentationBase {
             parameters: {
               values: Array<string>;
               __prismaRawParameters__: boolean;
-            }
-          }
+            };
+          };
         };
 
         const span = plugin.tracer.startSpan(
@@ -79,11 +79,8 @@ export class PrismaClientInstrumentation extends InstrumentationBase {
         );
 
         // Add the supplied attributes from instrumentation configuration
-        const {
-          spanAttributes: spanAttributes,
-        } = plugin.getConfig()
-        span.setAttributes(spanAttributes)
-
+        const { spanAttributes: spanAttributes } = plugin.getConfig();
+        span.setAttributes(spanAttributes);
 
         return opentelemetry.context.with(opentelemetry.trace.setSpan(opentelemetry.context.active(), span), () => {
           const promiseResponse = original.apply(this, arguments as any) as Promise<any>;
