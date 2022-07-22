@@ -4,6 +4,10 @@
 
 This module provides automatic instrumentation for [`@prisma/client`](https://github.com/prisma/prisma/tree/main/packages/client).
 
+## NOTE
+
+This is an unofficial plugin for the Prisma client. The Prisma team is working on official support for OpenTelemetry and progress can be tracked at https://github.com/prisma/client-planning/issues/21. Once the official support reaches the same level of capabilities of `opentelemetry-instrumentation-prisma-client`, the `opentelemetry-instrumentation-prisma-client` will be marked as deprecated.
+
 ## Installation
 
 ```
