@@ -1,4 +1,4 @@
-import opentelemetry, { Attributes, SpanKind , SpanStatusCode} from "@opentelemetry/api";
+import opentelemetry, { Attributes, SpanKind, SpanStatusCode } from "@opentelemetry/api";
 import {
   InstrumentationBase,
   InstrumentationConfig,
@@ -87,8 +87,8 @@ export class PrismaClientInstrumentation extends InstrumentationBase {
 
           promiseResponse
             .catch((error) => {
-              span.setStatus({ code: SpanStatusCode.ERROR})
-              span.recordException(error)
+              span.setStatus({ code: SpanStatusCode.ERROR });
+              span.recordException(error);
             })
             .finally(() => {
               span.end();
