@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.1.0](https://github.com/justindsmith/opentelemetry-instrumentations-js/compare/opentelemetry-instrumentation-prisma-client@0.0.4...opentelemetry-instrumentation-prisma-client@0.1.0) (2022-09-01)
+
+
+### Features
+
+* **prisma:** Use OTel prescribed way of recording exception and span status ([#24](https://github.com/justindsmith/opentelemetry-instrumentations-js/issues/24)) ([600921b](https://github.com/justindsmith/opentelemetry-instrumentations-js/commit/600921b220c9495f66b4de717f378596f368d085))
+
+
+
+
+
 ## [0.0.4](https://github.com/justindsmith/opentelemetry-instrumentations-js/compare/opentelemetry-instrumentation-prisma-client@0.0.3...opentelemetry-instrumentation-prisma-client@0.0.4) (2022-07-07)
 
 
