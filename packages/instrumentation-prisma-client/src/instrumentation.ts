@@ -87,6 +87,16 @@ export class PrismaClientInstrumentation extends InstrumentationBase {
 
           promiseResponse
             .catch((error) => {
+              // Capture error status and exception details in span attributes
+              span.setAttribute("error", true);
+              if (error.message) {
+                span.setAttribute(SemanticAttributes.EXCEPTION_MESSAGE, error.message);
+              }
+              if (error.stack) {
+                span.setAttribute(SemanticAttributes.EXCEPTION_STACKTRACE, error.stack);
+              }
+
+              // Also use the OTel model for recording exception details and setting the span status
               span.setStatus({ code: SpanStatusCode.ERROR });
               span.recordException(error);
             })
