@@ -136,9 +136,7 @@ describe("instrumentation-remix", () => {
           );
 
           // Match attributes
-          expect(loaderSpan.attributes["match.pathname"]).toBe("/parent");
           expect(loaderSpan.attributes["match.route.id"]).toBe("routes/parent");
-          expect(loaderSpan.attributes["match.route.path"]).toBe("/parent");
 
           // Response attributes
           expect(loaderSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
@@ -194,9 +192,7 @@ describe("instrumentation-remix", () => {
           expect(loaderSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent");
 
           // Match attributes
-          expect(loaderSpan.attributes["match.pathname"]).toBe("/parent");
           expect(loaderSpan.attributes["match.route.id"]).toBe("routes/parent");
-          expect(loaderSpan.attributes["match.route.path"]).toBe("/parent");
 
           // Response attributes
           expect(loaderSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
@@ -248,9 +244,7 @@ describe("instrumentation-remix", () => {
           expect(parentSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent/child/123");
 
           // Match attributes
-          expect(parentSpan.attributes["match.pathname"]).toBe("/parent");
           expect(parentSpan.attributes["match.route.id"]).toBe("routes/parent");
-          expect(parentSpan.attributes["match.route.path"]).toBe("/parent");
           expect(parentSpan.attributes["match.params.id"]).toBe("123");
 
           // Response attributes
@@ -271,9 +265,7 @@ describe("instrumentation-remix", () => {
           expect(childSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent/child/123");
 
           // Match attributes
-          expect(childSpan.attributes["match.pathname"]).toBe("/parent/child/123");
           expect(childSpan.attributes["match.route.id"]).toBe("routes/parent/child/$id");
-          expect(childSpan.attributes["match.route.path"]).toBe("/parent/child/:id");
           expect(childSpan.attributes["match.params.id"]).toBe("123");
 
           // Response attributes
@@ -326,9 +318,7 @@ describe("instrumentation-remix", () => {
           expect(loaderSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/throws-error");
 
           // Match attributes
-          expect(loaderSpan.attributes["match.pathname"]).toBe("/throws-error");
           expect(loaderSpan.attributes["match.route.id"]).toBe("routes/throws-error");
-          expect(loaderSpan.attributes["match.route.path"]).toBe("/throws-error");
 
           // Response attributes
           expect(loaderSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBeUndefined();
@@ -384,9 +374,7 @@ describe("instrumentation-remix", () => {
           expect(actionSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent");
 
           // Match attributes
-          expect(actionSpan.attributes["match.pathname"]).toBe("/parent");
           expect(actionSpan.attributes["match.route.id"]).toBe("routes/parent");
-          expect(actionSpan.attributes["match.route.path"]).toBe("/parent");
 
           // Response attributes
           expect(actionSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
@@ -408,9 +396,7 @@ describe("instrumentation-remix", () => {
           expect(loaderSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent");
 
           // Match attributes
-          expect(loaderSpan.attributes["match.pathname"]).toBe("/parent");
           expect(loaderSpan.attributes["match.route.id"]).toBe("routes/parent");
-          expect(loaderSpan.attributes["match.route.path"]).toBe("/parent");
 
           // Response attributes
           expect(loaderSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
@@ -477,9 +463,7 @@ describe("instrumentation-remix", () => {
           expect(actionSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent");
 
           // Match attributes
-          expect(actionSpan.attributes["match.pathname"]).toBe("/parent");
           expect(actionSpan.attributes["match.route.id"]).toBe("routes/parent");
-          expect(actionSpan.attributes["match.route.path"]).toBe("/parent");
 
           // Response attributes
           expect(actionSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
@@ -501,9 +485,7 @@ describe("instrumentation-remix", () => {
           expect(loaderSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent");
 
           // Match attributes
-          expect(loaderSpan.attributes["match.pathname"]).toBe("/parent");
           expect(loaderSpan.attributes["match.route.id"]).toBe("routes/parent");
-          expect(loaderSpan.attributes["match.route.path"]).toBe("/parent");
 
           // Response attributes
           expect(loaderSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
@@ -557,9 +539,7 @@ describe("instrumentation-remix", () => {
           expect(actionSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/throws-error");
 
           // Match attributes
-          expect(actionSpan.attributes["match.pathname"]).toBe("/throws-error");
           expect(actionSpan.attributes["match.route.id"]).toBe("routes/throws-error");
-          expect(actionSpan.attributes["match.route.path"]).toBe("/throws-error");
 
           // Response attributes
           expect(actionSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBeUndefined();

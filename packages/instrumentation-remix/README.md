@@ -73,9 +73,7 @@ Emitted for every `loader` called.
 | `http.method`              | HTTP method                        | `"POST"`                                                       |
 | `http.url`                 | HTTP URL                           | `"https://remix.jokes/jokes/new?_data=routes%2Fjokes%2Fnew"`   |
 | `http.status_code`         | Response status code               | `200`                                                          |
-| `match.pathname`           | Remix matched pathname             | `"/jokes/23fc7bcf-2d35-4c70-877f-338eca1fd3ef"`                |
 | `match.route.id`           | Remix matched route id             | `"routes/jokes/$jokeId"`                                       |
-| `match.route.path`         | Remix matched route path           | `":jokeId"`                                                    |
 | `match.params.[paramName]` | Value for each remix matched param | `[match.params.jokeId]: 23fc7bcf-2d35-4c70-877f-338eca1fd3ef"` |
 | `error`                    | Added if error detected            | `true`                                                         |
 | `exception.message`        | Error message, if applicable       | `"Kaboom!"`                                                    |
@@ -96,9 +94,7 @@ Emitted for every `action` called.
 | `http.method`              | HTTP method                              | `"POST"`                                                        |
 | `http.url`                 | HTTP URL                                 | `"https://remix.jokes/jokes/new?_data=routes%2Fjokes%2Fnew"`    |
 | `http.status_code`         | Response status code                     | `200`                                                           |
-| `match.pathname`           | Remix matched pathname                   | `"/jokes/23fc7bcf-2d35-4c70-877f-338eca1fd3ef"`                 |
 | `match.route.id`           | Remix matched route id                   | `"routes/jokes/$jokeId"`                                        |
-| `match.route.path`         | Remix matched route path                 | `":jokeId"`                                                     |
 | `match.params.[paramName]` | Value for each remix matched param       | `[match.params.jokeId]: "23fc7bcf-2d35-4c70-877f-338eca1fd3ef"` |
 | `formData.[fieldName]`     | Value for each configured FormData field | `[formData.actionType]: "createJoke"`                           |
 | `error`                    | Added if error detected                  | `true`                                                          |
