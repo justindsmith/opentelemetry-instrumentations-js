@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.2.0](https://github.com/justindsmith/opentelemetry-instrumentations-js/compare/opentelemetry-instrumentation-remix@0.1.2...opentelemetry-instrumentation-remix@0.2.0) (2022-11-02)
+
+
+* feat(remix)!: support remix 1.7.3+ breaking changes (#26) ([d7e132a](https://github.com/justindsmith/opentelemetry-instrumentations-js/commit/d7e132aff89844cd8b2906f6738784c9c21ddf3a)), closes [#26](https://github.com/justindsmith/opentelemetry-instrumentations-js/issues/26)
+
+
+### BREAKING CHANGES
+
+* `match.pathname` and `match.route.path` have been removed due to inability to read associated properties from Remix loader and action function signatures.
+
+
+
+
+
 ## [0.1.2](https://github.com/justindsmith/opentelemetry-instrumentations-js/compare/opentelemetry-instrumentation-remix@0.1.1...opentelemetry-instrumentation-remix@0.1.2) (2022-07-07)
 
 **Note:** Version bump only for package opentelemetry-instrumentation-remix
