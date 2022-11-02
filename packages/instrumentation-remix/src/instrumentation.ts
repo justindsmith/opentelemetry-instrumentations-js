@@ -9,14 +9,13 @@ import { SemanticAttributes } from "@opentelemetry/semantic-conventions";
 
 import type * as remixRunServerRuntime from "@remix-run/server-runtime";
 import type * as remixRunServerRuntimeData from "@remix-run/server-runtime/dist/data";
+import { Params } from "@remix-run/server-runtime/dist/router";
 
 import { VERSION } from "./version";
 
 const RemixSemanticAttributes = {
   MATCH_PARAMS: "match.params",
-  MATCH_PATHNAME: "match.pathname",
   MATCH_ROUTE_ID: "match.route.id",
-  MATCH_ROUTE_PATH: "match.route.path",
 };
 
 export interface RemixInstrumentationConfig extends InstrumentationConfig {
@@ -82,13 +81,13 @@ export class RemixInstrumentation extends InstrumentationBase {
         if (isWrapped(moduleExports["callRouteLoader"])) {
           this._unwrap(moduleExports, "callRouteLoader");
         }
-        this._wrap(moduleExports, "callRouteLoader", this._patchCallRouteLoader());
+        this._wrap(moduleExports, "callRouteLoader", this._patchCallRouteLoaderPre_1_7_2());
 
         // callRouteAction
         if (isWrapped(moduleExports["callRouteAction"])) {
           this._unwrap(moduleExports, "callRouteAction");
         }
-        this._wrap(moduleExports, "callRouteAction", this._patchCallRouteAction());
+        this._wrap(moduleExports, "callRouteAction", this._patchCallRouteActionPre_1_7_2());
         return moduleExports;
       },
       (moduleExports: typeof remixRunServerRuntimeData) => {
@@ -96,9 +95,39 @@ export class RemixInstrumentation extends InstrumentationBase {
         this._unwrap(moduleExports, "callRouteAction");
       }
     );
+
+    /**
+     * Before Remix 1.7.3 we received the full `Match` object for each path in the route chain,
+     * afterwards we only receive the `routeId` and associated `params`.
+     */
+    const remixRunServerRuntimeDataPre_1_7_2_Module = new InstrumentationNodeModuleDefinition<
+      typeof remixRunServerRuntimeData
+    >(
+      "@remix-run/server-runtime/dist/data",
+      ["1.6.2 - 1.7.2"],
+      (moduleExports: typeof remixRunServerRuntimeData) => {
+        // callRouteLoader
+        if (isWrapped(moduleExports["callRouteLoader"])) {
+          this._unwrap(moduleExports, "callRouteLoader");
+        }
+        this._wrap(moduleExports, "callRouteLoader", this._patchCallRouteLoaderPre_1_7_2());
+
+        // callRouteAction
+        if (isWrapped(moduleExports["callRouteAction"])) {
+          this._unwrap(moduleExports, "callRouteAction");
+        }
+        this._wrap(moduleExports, "callRouteAction", this._patchCallRouteActionPre_1_7_2());
+        return moduleExports;
+      },
+      (moduleExports: typeof remixRunServerRuntimeData) => {
+        this._unwrap(moduleExports, "callRouteLoader");
+        this._unwrap(moduleExports, "callRouteAction");
+      }
+    );
+
     const remixRunServerRuntimeDataModule = new InstrumentationNodeModuleDefinition<typeof remixRunServerRuntimeData>(
       "@remix-run/server-runtime/dist/data",
-      ["1.6.2 - 1.*"],
+      ["1.7.3 - 1.*"],
       (moduleExports: typeof remixRunServerRuntimeData) => {
         // callRouteLoader
         if (isWrapped(moduleExports["callRouteLoader"])) {
@@ -119,7 +148,12 @@ export class RemixInstrumentation extends InstrumentationBase {
       }
     );
 
-    return [remixRunServerRuntimeModule, remixRunServerRuntimeDataPre_1_6_2_Module, remixRunServerRuntimeDataModule];
+    return [
+      remixRunServerRuntimeModule,
+      remixRunServerRuntimeDataPre_1_6_2_Module,
+      remixRunServerRuntimeDataPre_1_7_2_Module,
+      remixRunServerRuntimeDataModule,
+    ];
   }
 
   private _patchCreateRequestHandler(): (original: typeof remixRunServerRuntime.createRequestHandler) => any {
@@ -163,7 +197,42 @@ export class RemixInstrumentation extends InstrumentationBase {
     const plugin = this;
     return function callRouteLoader(original) {
       return function patchCallRouteLoader(this: any): Promise<Response> {
-        const [params] = arguments as unknown as Parameters<typeof remixRunServerRuntimeData.callRouteLoader>;
+        const [params] = arguments as unknown as any;
+
+        const span = plugin.tracer.startSpan(
+          `LOADER ${params.routeId}`,
+          { attributes: { [SemanticAttributes.CODE_FUNCTION]: "loader" } },
+          opentelemetry.context.active()
+        );
+
+        addRequestAttributesToSpan(span, params.request);
+        addMatchAttributesToSpan(span, { routeId: params.routeId, params: params.params });
+
+        return opentelemetry.context.with(opentelemetry.trace.setSpan(opentelemetry.context.active(), span), () => {
+          const originalResponsePromise: Promise<Response> = original.apply(this, arguments as any);
+          return originalResponsePromise
+            .then((response) => {
+              addResponseAttributesToSpan(span, response);
+              return response;
+            })
+            .catch((error) => {
+              addErrorAttributesToSpan(span, error);
+              throw error;
+            })
+            .finally(() => {
+              span.end();
+            });
+        });
+      };
+    };
+  }
+
+  private _patchCallRouteLoaderPre_1_7_2(): (original: typeof remixRunServerRuntimeData.callRouteLoader) => any {
+    const plugin = this;
+    return function callRouteLoader(original) {
+      return function patchCallRouteLoader(this: any): Promise<Response> {
+        // Cast as `any` to avoid typescript errors since this is patching an older version
+        const [params] = arguments as unknown as any;
 
         const span = plugin.tracer.startSpan(
           `LOADER ${params.match.route.id}`,
@@ -172,7 +241,7 @@ export class RemixInstrumentation extends InstrumentationBase {
         );
 
         addRequestAttributesToSpan(span, params.request);
-        addMatchAttributesToSpan(span, params.match);
+        addMatchAttributesToSpan(span, { routeId: params.match.route.id, params: params.match.params });
 
         return opentelemetry.context.with(opentelemetry.trace.setSpan(opentelemetry.context.active(), span), () => {
           const originalResponsePromise: Promise<Response> = original.apply(this, arguments as any);
@@ -197,18 +266,70 @@ export class RemixInstrumentation extends InstrumentationBase {
     const plugin = this;
     return function callRouteAction(original) {
       return async function patchCallRouteAction(this: any): Promise<Response> {
-        const [{ match, request }] = arguments as unknown as Parameters<
-          typeof remixRunServerRuntimeData.callRouteAction
-        >;
-        const clonedRequest = request.clone();
+        const [params] = arguments as unknown as any;
+        const clonedRequest = params.request.clone();
         const span = plugin.tracer.startSpan(
-          `ACTION ${match.route.id}`,
+          `ACTION ${params.routeId}`,
           { attributes: { [SemanticAttributes.CODE_FUNCTION]: "action" } },
           opentelemetry.context.active()
         );
 
         addRequestAttributesToSpan(span, clonedRequest);
-        addMatchAttributesToSpan(span, match);
+        addMatchAttributesToSpan(span, { routeId: params.routeId, params: params.params });
+
+        return opentelemetry.context.with(
+          opentelemetry.trace.setSpan(opentelemetry.context.active(), span),
+          async () => {
+            const originalResponsePromise: Promise<Response> = original.apply(this, arguments as any);
+
+            return originalResponsePromise
+              .then(async (response) => {
+                addResponseAttributesToSpan(span, response);
+
+                try {
+                  const formData = await clonedRequest.formData();
+                  const { actionFormDataAttributes: actionFormAttributes } = plugin.getConfig();
+                  formData.forEach((value, key) => {
+                    if (actionFormAttributes[key] !== false) {
+                      const keyName = actionFormAttributes[key] === true ? key : actionFormAttributes[key];
+                      span.setAttribute(`formData.${keyName}`, value.toString());
+                    }
+                  });
+                } catch {
+                  // Silently continue on any error. Typically happens because the action body cannot be processed
+                  // into FormData, in which case we should just continue.
+                }
+
+                return response;
+              })
+              .catch(async (error) => {
+                addErrorAttributesToSpan(span, error);
+                throw error;
+              })
+              .finally(() => {
+                span.end();
+              });
+          }
+        );
+      };
+    };
+  }
+
+  private _patchCallRouteActionPre_1_7_2(): (original: typeof remixRunServerRuntimeData.callRouteAction) => any {
+    const plugin = this;
+    return function callRouteAction(original) {
+      return async function patchCallRouteAction(this: any): Promise<Response> {
+        // Cast as `any` to avoid typescript errors since this is patching an older version
+        const [params] = arguments as unknown as any;
+        const clonedRequest = params.request.clone();
+        const span = plugin.tracer.startSpan(
+          `ACTION ${params.match.route.id}`,
+          { attributes: { [SemanticAttributes.CODE_FUNCTION]: "action" } },
+          opentelemetry.context.active()
+        );
+
+        addRequestAttributesToSpan(span, clonedRequest);
+        addMatchAttributesToSpan(span, { routeId: params.match.route.id, params: params.match.params });
 
         return opentelemetry.context.with(
           opentelemetry.trace.setSpan(opentelemetry.context.active(), span),
@@ -256,14 +377,9 @@ const addRequestAttributesToSpan = (span: Span, request: Request) => {
   });
 };
 
-const addMatchAttributesToSpan = (
-  span: Span,
-  match: Parameters<typeof remixRunServerRuntimeData.callRouteLoader>[0]["match"]
-) => {
+const addMatchAttributesToSpan = (span: Span, match: { routeId: string; params: Params<string> }) => {
   span.setAttributes({
-    [RemixSemanticAttributes.MATCH_PATHNAME]: match.pathname,
-    [RemixSemanticAttributes.MATCH_ROUTE_ID]: match.route.id,
-    [RemixSemanticAttributes.MATCH_ROUTE_PATH]: match.route.path,
+    [RemixSemanticAttributes.MATCH_ROUTE_ID]: match.routeId,
   });
 
   Object.keys(match.params).forEach((paramName) => {
