@@ -25,7 +25,7 @@ const { registerInstrumentations } = require('@opentelemetry/instrumentation');
 const { RemixInstrumentation } = require('opentelemetry-instrumentation-remix');
 
 const tracerProvider = new NodeTracerProvider();
-provider.register();
+tracerProvider.register();
 
 registerInstrumentations({
   instrumentations: [
