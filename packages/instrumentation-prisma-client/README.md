@@ -26,7 +26,7 @@ const { registerInstrumentations } = require('@opentelemetry/instrumentation');
 const { PrismaClientInstrumentation } = require('opentelemetry-instrumentation-prisma-client');
 
 const tracerProvider = new NodeTracerProvider();
-provider.register();
+tracerProvider.register();
 
 registerInstrumentations({
   instrumentations: [
