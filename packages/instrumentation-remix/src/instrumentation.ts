@@ -79,19 +79,25 @@ export class RemixInstrumentation extends InstrumentationBase {
       (moduleExports: typeof remixRunServerRuntimeData) => {
         // callRouteLoader
         if (isWrapped(moduleExports["callRouteLoader"])) {
+          // @ts-ignore
           this._unwrap(moduleExports, "callRouteLoader");
         }
+        // @ts-ignore
         this._wrap(moduleExports, "callRouteLoader", this._patchCallRouteLoaderPre_1_7_2());
 
         // callRouteAction
         if (isWrapped(moduleExports["callRouteAction"])) {
+          // @ts-ignore
           this._unwrap(moduleExports, "callRouteAction");
         }
+        // @ts-ignore
         this._wrap(moduleExports, "callRouteAction", this._patchCallRouteActionPre_1_7_2());
         return moduleExports;
       },
       (moduleExports: typeof remixRunServerRuntimeData) => {
+        // @ts-ignore
         this._unwrap(moduleExports, "callRouteLoader");
+        // @ts-ignore
         this._unwrap(moduleExports, "callRouteAction");
       }
     );
@@ -108,43 +114,89 @@ export class RemixInstrumentation extends InstrumentationBase {
       (moduleExports: typeof remixRunServerRuntimeData) => {
         // callRouteLoader
         if (isWrapped(moduleExports["callRouteLoader"])) {
+          // @ts-ignore
           this._unwrap(moduleExports, "callRouteLoader");
         }
+        // @ts-ignore
         this._wrap(moduleExports, "callRouteLoader", this._patchCallRouteLoaderPre_1_7_2());
 
         // callRouteAction
         if (isWrapped(moduleExports["callRouteAction"])) {
+          // @ts-ignore
           this._unwrap(moduleExports, "callRouteAction");
         }
+        // @ts-ignore
         this._wrap(moduleExports, "callRouteAction", this._patchCallRouteActionPre_1_7_2());
         return moduleExports;
       },
       (moduleExports: typeof remixRunServerRuntimeData) => {
+        // @ts-ignore
         this._unwrap(moduleExports, "callRouteLoader");
+        // @ts-ignore
         this._unwrap(moduleExports, "callRouteAction");
       }
     );
 
-    const remixRunServerRuntimeDataModule = new InstrumentationNodeModuleDefinition<typeof remixRunServerRuntimeData>(
+    const remixRunServerRuntimeDataPre_1_7_6_Module = new InstrumentationNodeModuleDefinition<
+      typeof remixRunServerRuntimeData
+    >(
       "@remix-run/server-runtime/dist/data",
-      ["1.7.3 - 1.*"],
+      ["1.7.3 - 1.7.6"],
       (moduleExports: typeof remixRunServerRuntimeData) => {
         // callRouteLoader
         if (isWrapped(moduleExports["callRouteLoader"])) {
+          // @ts-ignore
           this._unwrap(moduleExports, "callRouteLoader");
         }
+        // @ts-ignore
         this._wrap(moduleExports, "callRouteLoader", this._patchCallRouteLoader());
 
         // callRouteAction
         if (isWrapped(moduleExports["callRouteAction"])) {
+          // @ts-ignore
           this._unwrap(moduleExports, "callRouteAction");
         }
+        // @ts-ignore
         this._wrap(moduleExports, "callRouteAction", this._patchCallRouteAction());
         return moduleExports;
       },
       (moduleExports: typeof remixRunServerRuntimeData) => {
+        // @ts-ignore
         this._unwrap(moduleExports, "callRouteLoader");
+        // @ts-ignore
         this._unwrap(moduleExports, "callRouteAction");
+      }
+    );
+
+    /*
+     * In Remix 1.8.0, the callXXLoader functions were renamed to callXXLoaderRR.
+     */
+    const remixRunServerRuntimeDataModule = new InstrumentationNodeModuleDefinition<typeof remixRunServerRuntimeData>(
+      "@remix-run/server-runtime/dist/data",
+      ["1.8.0 - 1.x"],
+      (moduleExports: typeof remixRunServerRuntimeData) => {
+        // callRouteLoader
+        if (isWrapped(moduleExports["callRouteLoaderRR"])) {
+          // @ts-ignore
+          this._unwrap(moduleExports, "callRouteLoaderRR");
+        }
+        // @ts-ignore
+        this._wrap(moduleExports, "callRouteLoaderRR", this._patchCallRouteLoader());
+
+        // callRouteAction
+        if (isWrapped(moduleExports["callRouteActionRR"])) {
+          // @ts-ignore
+          this._unwrap(moduleExports, "callRouteActionRR");
+        }
+        // @ts-ignore
+        this._wrap(moduleExports, "callRouteActionRR", this._patchCallRouteAction());
+        return moduleExports;
+      },
+      (moduleExports: typeof remixRunServerRuntimeData) => {
+        // @ts-ignore
+        this._unwrap(moduleExports, "callRouteLoaderRR");
+        // @ts-ignore
+        this._unwrap(moduleExports, "callRouteActionRR");
       }
     );
 
@@ -152,6 +204,7 @@ export class RemixInstrumentation extends InstrumentationBase {
       remixRunServerRuntimeModule,
       remixRunServerRuntimeDataPre_1_6_2_Module,
       remixRunServerRuntimeDataPre_1_7_2_Module,
+      remixRunServerRuntimeDataPre_1_7_6_Module,
       remixRunServerRuntimeDataModule,
     ];
   }
@@ -193,6 +246,7 @@ export class RemixInstrumentation extends InstrumentationBase {
     };
   }
 
+  // @ts-ignore
   private _patchCallRouteLoader(): (original: typeof remixRunServerRuntimeData.callRouteLoader) => any {
     const plugin = this;
     return function callRouteLoader(original) {
@@ -227,6 +281,7 @@ export class RemixInstrumentation extends InstrumentationBase {
     };
   }
 
+  // @ts-ignore
   private _patchCallRouteLoaderPre_1_7_2(): (original: typeof remixRunServerRuntimeData.callRouteLoader) => any {
     const plugin = this;
     return function callRouteLoader(original) {
@@ -262,6 +317,7 @@ export class RemixInstrumentation extends InstrumentationBase {
     };
   }
 
+  // @ts-ignore
   private _patchCallRouteAction(): (original: typeof remixRunServerRuntimeData.callRouteAction) => any {
     const plugin = this;
     return function callRouteAction(original) {
@@ -315,6 +371,7 @@ export class RemixInstrumentation extends InstrumentationBase {
     };
   }
 
+  // @ts-ignore
   private _patchCallRouteActionPre_1_7_2(): (original: typeof remixRunServerRuntimeData.callRouteAction) => any {
     const plugin = this;
     return function callRouteAction(original) {
