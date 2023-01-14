@@ -392,7 +392,14 @@ describe("instrumentation-remix", () => {
           expect(loaderSpan.name).toBe("LOADER routes/parent");
 
           // Request attributes
-          expect(loaderSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("POST");
+
+          // Remix v1.8.2+ uses @remix-run/router v1.0.5, which uses a `GET` for loader revalidation instead of `POST`.
+          // See: https://github.com/remix-run/react-router/blob/main/packages/router/CHANGELOG.md#105
+          if (semver.satisfies(remixServerRuntimePackage.version, "<1.8.2")) {
+            expect(loaderSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("POST");
+          } else {
+            expect(loaderSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
+          }
           expect(loaderSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent");
 
           // Match attributes
