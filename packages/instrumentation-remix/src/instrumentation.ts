@@ -9,7 +9,7 @@ import { SemanticAttributes } from "@opentelemetry/semantic-conventions";
 
 import type * as remixRunServerRuntime from "@remix-run/server-runtime";
 import type * as remixRunServerRuntimeData from "@remix-run/server-runtime/dist/data";
-import { Params } from "@remix-run/server-runtime/dist/router";
+import type { Params } from "@remix-run/router";
 
 import { VERSION } from "./version";
 
