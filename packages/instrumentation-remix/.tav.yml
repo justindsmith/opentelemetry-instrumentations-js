@@ -1,4 +1,4 @@
 '@remix-run/server-runtime':
-  versions: ">=1.1.0"
+  versions: "<=1.7.0"
   commands:
     - yarn test
