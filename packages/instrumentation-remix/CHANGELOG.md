@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.3.0](https://github.com/justindsmith/opentelemetry-instrumentations-js/compare/opentelemetry-instrumentation-remix@0.2.0...opentelemetry-instrumentation-remix@0.3.0) (2023-01-14)
+
+
+### Bug Fixes
+
+* **remix:** add compatibility with remix v1.8.0 ([#28](https://github.com/justindsmith/opentelemetry-instrumentations-js/issues/28)) ([efc0c85](https://github.com/justindsmith/opentelemetry-instrumentations-js/commit/efc0c8509829551979e9c46fd72c848d8e6f772b))
+* **remix:** Update tests based on @remix-run/router loader revalidation change ([#29](https://github.com/justindsmith/opentelemetry-instrumentations-js/issues/29)) ([75b525e](https://github.com/justindsmith/opentelemetry-instrumentations-js/commit/75b525e7b4a5c15726c67546277ba7d2230931f4)), closes [/github.com/remix-run/react-router/blob/main/packages/router/CHANGELOG.md#105](https://github.com//github.com/remix-run/react-router/blob/main/packages/router/CHANGELOG.md/issues/105)
+
+
+
+
+
 # [0.2.0](https://github.com/justindsmith/opentelemetry-instrumentations-js/compare/opentelemetry-instrumentation-remix@0.1.2...opentelemetry-instrumentation-remix@0.2.0) (2022-11-02)
 
 
