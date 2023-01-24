@@ -231,6 +231,9 @@ export class RemixInstrumentation extends InstrumentationBase {
           );
           return originalResponsePromise
             .then((response) => {
+              if (response.status === 500) {
+                span.setAttribute("error", true);
+              }    
               addResponseAttributesToSpan(span, response);
               return response;
             })
