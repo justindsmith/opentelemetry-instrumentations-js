@@ -80,7 +80,7 @@ export class PrismaClientInstrumentation extends InstrumentationBase {
 
         // Add the supplied attributes from instrumentation configuration
         const { spanAttributes: spanAttributes } = plugin.getConfig();
-        span.setAttributes(spanAttributes);
+        span.setAttributes(spanAttributes || {});
 
         return opentelemetry.context.with(opentelemetry.trace.setSpan(opentelemetry.context.active(), span), () => {
           const promiseResponse = original.apply(this, arguments as any) as Promise<any>;
