@@ -74,6 +74,7 @@ let build: ServerBuild = {
   entry: {
     module: entryModule,
   },
+  future: {},
 } as unknown as ServerBuild;
 
 /**
