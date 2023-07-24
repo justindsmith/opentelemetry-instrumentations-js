@@ -341,14 +341,46 @@ describe("instrumentation-remix", () => {
       expectNoError(requestHandlerSpan);
     });
 
+    describe("with legacyErrorAttributes", () => {
+      before(() => {
+        instrumentation.setConfig({
+          ...instrumentationConfig,
+          legacyErrorAttributes: true,
+        });
+      });
 
+      after(() => {
+        instrumentation.setConfig(instrumentationConfig);
+      });
 
+      it("handles a thrown error from loader", async () => {
+        const request = new Request("http://localhost/throws-error", { method: "GET" });
+        await requestHandler(request, {});
 
+        const spans = getTestSpans();
+        expect(spans.length).toBe(2);
 
+        const [loaderSpan, requestHandlerSpan] = spans;
 
+        expectParentSpan(requestHandlerSpan, loaderSpan);
 
+        const expectedRequestAttributes = {
+          method: "GET",
+          url: "http://localhost/throws-error",
+        };
 
+        // Loader span
+        expectLoaderSpan(loaderSpan, "routes/throws-error");
+        expectRequestAttributes(loaderSpan, expectedRequestAttributes);
+        expectNoResponseAttributes(loaderSpan);
+        expectError(loaderSpan, "oh no loader");
 
+        // Request handler span
+        expectRequestHandlerSpan(requestHandlerSpan);
+        expectRequestAttributes(requestHandlerSpan, expectedRequestAttributes);
+        expectResponseAttributes(requestHandlerSpan, { status: 500 });
+        expectNoError(requestHandlerSpan);
+      });
     });
   });
 
@@ -466,12 +498,45 @@ describe("instrumentation-remix", () => {
       expectNoError(requestHandlerSpan);
     });
 
+    describe("with legacyErrorAttributes", () => {
+      before(() => {
+        instrumentation.setConfig({
+          ...instrumentationConfig,
+          legacyErrorAttributes: true,
+        });
+      });
 
+      after(() => {
+        instrumentation.setConfig(instrumentationConfig);
+      });
 
+      it("handles a thrown error from action", async () => {
+        const request = new Request("http://localhost/throws-error", { method: "POST" });
+        await requestHandler(request, {});
+        const spans = getTestSpans();
+        expect(spans.length).toBe(2);
 
+        const [actionSpan, requestHandlerSpan] = spans;
 
+        expectParentSpan(requestHandlerSpan, actionSpan);
 
+        const expectedRequestAttributes = {
+          method: "POST",
+          url: "http://localhost/throws-error",
+        };
 
+        // Action span
+        expectActionSpan(actionSpan, "routes/throws-error");
+        expectRequestAttributes(actionSpan, expectedRequestAttributes);
+        expectNoResponseAttributes(actionSpan);
+        expectError(actionSpan, "oh no action");
+
+        // Request handler span
+        expectRequestHandlerSpan(requestHandlerSpan);
+        expectRequestAttributes(requestHandlerSpan, expectedRequestAttributes);
+        expectResponseAttributes(requestHandlerSpan, { status: 500 });
+        expectNoError(requestHandlerSpan);
+      });
     });
   });
 });
