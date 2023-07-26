@@ -4,20 +4,26 @@ import expect from "expect";
 import { RemixInstrumentation } from "../src";
 import { SemanticAttributes } from "@opentelemetry/semantic-conventions";
 import { getTestSpans } from "opentelemetry-instrumentation-testing-utils";
+import type { ReadableSpan } from "@opentelemetry/sdk-trace-base";
+
 import * as semver from "semver";
 
-const instrumentation = new RemixInstrumentation({
+const instrumentationConfig = {
   actionFormDataAttributes: {
     _action: "actionType",
     foo: false,
     num: true,
   },
-});
+  legacyErrorAttributes: false,
+};
+
+const instrumentation = new RemixInstrumentation(instrumentationConfig);
 
 import { installGlobals } from "@remix-run/node";
 
 import * as remixServerRuntime from "@remix-run/server-runtime";
 import type { ServerBuild, ServerEntryModule } from "@remix-run/server-runtime";
+import { SpanStatusCode } from "@opentelemetry/api";
 const remixServerRuntimePackage = require("@remix-run/server-runtime/package.json");
 
 /** REMIX SERVER BUILD */
@@ -74,6 +80,7 @@ let build: ServerBuild = {
   entry: {
     module: entryModule,
   },
+  future: {},
 } as unknown as ServerBuild;
 
 /**
@@ -94,6 +101,101 @@ function createRequestHandlerForPackageVersion(version: string): remixServerRunt
   }
 }
 
+// Expects no error to appear as span attributes.
+const expectNoAttributeError = (span: ReadableSpan) => {
+  expect(span.attributes["error"]).toBeUndefined();
+  expect(span.attributes[SemanticAttributes.EXCEPTION_MESSAGE]).toBeUndefined();
+  expect(span.attributes[SemanticAttributes.EXCEPTION_STACKTRACE]).toBeUndefined();
+};
+
+// Expects no error to appear as a span exception event.
+const expectNoEventError = (span: ReadableSpan) => {
+  expect(span.status.code).not.toBe(SpanStatusCode.ERROR);
+  expect(span.events.length).toBe(0);
+};
+
+// Expects no error to appear, either as span attributes or as a span exception event.
+const expectNoError = (span: ReadableSpan) => {
+  expectNoAttributeError(span);
+  expectNoEventError(span);
+};
+
+// Expects an error to appear, both as span attributes and as a span exception event.
+const expectError = (span: ReadableSpan, message: string) => {
+  expectEventError(span, message);
+  expectAttributeError(span, message);
+};
+
+// Expects an error to appear as span attributes.
+const expectAttributeError = (span: ReadableSpan, message: string) => {
+  expect(span.attributes["error"]).toBe(true);
+  expect(span.attributes[SemanticAttributes.EXCEPTION_MESSAGE]).toBe(message);
+  expect(span.attributes[SemanticAttributes.EXCEPTION_STACKTRACE]).toBeDefined();
+};
+
+// Expects an error to appear as a span exception event.
+const expectEventError = (span: ReadableSpan, message: string) => {
+  expect(span.status.code).toBe(SpanStatusCode.ERROR);
+  expect(span.events.length).toBe(1);
+  expect(span.events[0].attributes[SemanticAttributes.EXCEPTION_MESSAGE]).toBe(message);
+  expect(span.events[0].attributes[SemanticAttributes.EXCEPTION_STACKTRACE]).toBeDefined();
+};
+
+const expectLoaderSpan = (span: ReadableSpan, route: string, params: { [key: string]: any } = {}) => {
+  expect(span.name).toBe(`LOADER ${route}`);
+  expect(span.attributes["match.route.id"]).toBe(route);
+
+  Object.entries(params).forEach(([key, value]) => {
+    expect(span.attributes[`match.params.${key}`]).toBe(value);
+  });
+};
+
+const expectActionSpan = (span: ReadableSpan, route: string, formData: { [key: string]: any } = {}) => {
+  expect(span.name).toBe(`ACTION ${route}`);
+  expect(span.attributes["match.route.id"]).toBe(route);
+
+  Object.entries(formData).forEach(([key, value]) => {
+    expect(span.attributes[`formData.${key}`]).toBe(value);
+  });
+};
+
+const expectRequestHandlerSpan = (span: ReadableSpan) => {
+  expect(span.name).toBe("remix.request");
+};
+
+const expectParentSpan = (parent: ReadableSpan, child: ReadableSpan) => {
+  expect(parent.spanContext().traceId).toBe(child.spanContext().traceId);
+  expect(parent.spanContext().spanId).toBe(child.parentSpanId);
+};
+
+const expectResponseAttributes = (span: ReadableSpan, { status }: { status: number }) => {
+  expect(span.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(status);
+};
+
+const expectNoResponseAttributes = (span: ReadableSpan) => {
+  expect(span.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBeUndefined();
+};
+
+type RequestAttributes = { method: string; url: string };
+
+const expectRequestAttributes = (span: ReadableSpan, { method, url }: RequestAttributes) => {
+  expect(span.attributes[SemanticAttributes.HTTP_METHOD]).toBe(method);
+  expect(span.attributes[SemanticAttributes.HTTP_URL]).toBe(url);
+};
+
+const loaderRevalidation = (attributes: RequestAttributes): RequestAttributes => {
+  if (semver.satisfies(remixServerRuntimePackage.version, "<1.8.2")) {
+    return attributes;
+  }
+
+  // Remix v1.8.2+ uses @remix-run/router v1.0.5, which uses a `GET` for loader revalidation instead of `POST`.
+  // See: https://github.com/remix-run/react-router/blob/main/packages/router/CHANGELOG.md#105
+  return {
+    ...attributes,
+    method: "GET",
+  };
+};
+
 /** TESTS */
 
 describe("instrumentation-remix", () => {
@@ -113,330 +215,213 @@ describe("instrumentation-remix", () => {
   });
 
   describe("requestHandler", () => {
-    it("handles thrown error from entry module", (done) => {
+    it("handles thrown error from entry module", async () => {
       const request = new Request("http://localhost/parent?throwEntryModuleError", { method: "GET" });
-      requestHandler(request, {})
-        .then(() => {
-          const spans = getTestSpans();
-          expect(spans.length).toBe(2);
+      await requestHandler(request, {});
 
-          const [loaderSpan, requestHandlerSpan] = spans;
+      const spans = getTestSpans();
+      expect(spans.length).toBe(2);
 
-          //
-          // Loader span
-          //
+      const [loaderSpan, requestHandlerSpan] = spans;
 
-          // General properties
-          expect(loaderSpan.name).toBe("LOADER routes/parent");
+      expectParentSpan(requestHandlerSpan, loaderSpan);
 
-          // Request attributes
-          expect(loaderSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
-          expect(loaderSpan.attributes[SemanticAttributes.HTTP_URL]).toBe(
-            "http://localhost/parent?throwEntryModuleError"
-          );
+      const expectedRequestAttributes = {
+        method: "GET",
+        url: "http://localhost/parent?throwEntryModuleError",
+      };
 
-          // Match attributes
-          expect(loaderSpan.attributes["match.route.id"]).toBe("routes/parent");
+      // Loader span
+      expectLoaderSpan(loaderSpan, "routes/parent");
+      expectRequestAttributes(loaderSpan, expectedRequestAttributes);
+      expectResponseAttributes(loaderSpan, { status: 200 });
+      expectNoError(loaderSpan);
 
-          // Response attributes
-          expect(loaderSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
-
-          // Error attributes
-          expect(loaderSpan.attributes["error"]).toBeUndefined();
-
-          //
-          // Request Handler span
-          //
-
-          // General properties
-          expect(requestHandlerSpan.name).toBe("remix.request");
-
-          // Request attributes
-          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
-          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_URL]).toBe(
-            "http://localhost/parent?throwEntryModuleError"
-          );
-
-          // Response attributes
-          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(500);
-
-          // Error attributes
-          expect(requestHandlerSpan.attributes["error"]).toBeUndefined();
-        })
-        .catch((error) => {
-          done(error);
-        })
-        .finally(done);
+      // Request handler span
+      expectRequestHandlerSpan(requestHandlerSpan);
+      expectRequestAttributes(requestHandlerSpan, expectedRequestAttributes);
+      expectResponseAttributes(requestHandlerSpan, { status: 500 });
+      expectNoError(requestHandlerSpan);
     });
   });
 
   describe("loaders", () => {
-    it("handles basic loader", (done) => {
+    it("handles basic loader", async () => {
       const request = new Request("http://localhost/parent", { method: "GET" });
-      requestHandler(request, {})
-        .then(() => {
-          const spans = getTestSpans();
-          expect(spans.length).toBe(2);
+      await requestHandler(request, {});
 
-          const [loaderSpan, requestHandlerSpan] = spans;
+      const spans = getTestSpans();
+      expect(spans.length).toBe(2);
 
-          //
-          // Loader span
-          //
+      const [loaderSpan, requestHandlerSpan] = spans;
 
-          // General properties
-          expect(loaderSpan.name).toBe("LOADER routes/parent");
+      expectParentSpan(requestHandlerSpan, loaderSpan);
 
-          // Request attributes
-          expect(loaderSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
-          expect(loaderSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent");
+      const expectedRequestAttributes = {
+        method: "GET",
+        url: "http://localhost/parent",
+      };
 
-          // Match attributes
-          expect(loaderSpan.attributes["match.route.id"]).toBe("routes/parent");
+      // Loader span
+      expectLoaderSpan(loaderSpan, "routes/parent");
+      expectRequestAttributes(loaderSpan, expectedRequestAttributes);
+      expectResponseAttributes(loaderSpan, { status: 200 });
+      expectNoError(loaderSpan);
 
-          // Response attributes
-          expect(loaderSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
-
-          // Error attributes
-          expect(loaderSpan.attributes["error"]).toBeUndefined();
-
-          //
-          // Request Handler span
-          //
-
-          // General properties
-          expect(requestHandlerSpan.name).toBe("remix.request");
-
-          // Request attributes
-          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
-          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent");
-
-          // Response attributes
-          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
-
-          // Error attributes
-          expect(requestHandlerSpan.attributes["error"]).toBeUndefined();
-        })
-        .catch((error) => {
-          done(error);
-        })
-        .finally(done);
+      // Request handler span
+      expectRequestHandlerSpan(requestHandlerSpan);
+      expectRequestAttributes(requestHandlerSpan, expectedRequestAttributes);
+      expectResponseAttributes(requestHandlerSpan, { status: 200 });
+      expectNoError(requestHandlerSpan);
     });
 
-    it("handles parent-child loaders", (done) => {
+    it("handles parent-child loaders", async () => {
       const request = new Request("http://localhost/parent/child/123", { method: "GET" });
-      requestHandler(request, {})
-        .then(() => {
-          const spans = getTestSpans();
-          expect(spans.length).toBe(3);
+      await requestHandler(request, {});
 
-          const [parentSpan, childSpan, requestHandlerSpan] = spans;
+      const spans = getTestSpans();
+      expect(spans.length).toBe(3);
 
-          //
-          // Parent span
-          //
+      const [parentLoaderSpan, childLoaderSpan, requestHandlerSpan] = spans;
 
-          // General properties
-          expect(parentSpan.name).toBe("LOADER routes/parent");
+      expectParentSpan(requestHandlerSpan, parentLoaderSpan);
+      expectParentSpan(requestHandlerSpan, childLoaderSpan);
 
-          // Request attributes
-          expect(parentSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
-          expect(parentSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent/child/123");
+      const expectedRequestAttributes = {
+        method: "GET",
+        url: "http://localhost/parent/child/123",
+      };
 
-          // Match attributes
-          expect(parentSpan.attributes["match.route.id"]).toBe("routes/parent");
-          expect(parentSpan.attributes["match.params.id"]).toBe("123");
+      // Parent span
+      expectLoaderSpan(parentLoaderSpan, "routes/parent", { id: "123" });
+      expectRequestAttributes(parentLoaderSpan, expectedRequestAttributes);
+      expectResponseAttributes(parentLoaderSpan, { status: 200 });
+      expectNoError(parentLoaderSpan);
 
-          // Response attributes
-          expect(parentSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
+      // Child span
+      expectLoaderSpan(childLoaderSpan, "routes/parent/child/$id", { id: "123" });
+      expectRequestAttributes(childLoaderSpan, expectedRequestAttributes);
+      expectResponseAttributes(childLoaderSpan, { status: 200 });
+      expectNoError(childLoaderSpan);
 
-          // Error attributes
-          expect(parentSpan.attributes["error"]).toBeUndefined();
-
-          //
-          // Child span
-          //
-
-          // General properties
-          expect(childSpan.name).toBe("LOADER routes/parent/child/$id");
-
-          // Request attributes
-          expect(childSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
-          expect(childSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent/child/123");
-
-          // Match attributes
-          expect(childSpan.attributes["match.route.id"]).toBe("routes/parent/child/$id");
-          expect(childSpan.attributes["match.params.id"]).toBe("123");
-
-          // Response attributes
-          expect(childSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
-
-          // Error attributes
-          expect(childSpan.attributes["error"]).toBeUndefined();
-
-          //
-          // Request Handler span
-          //
-
-          // General properties
-          expect(requestHandlerSpan.name).toBe("remix.request");
-
-          // Request attributes
-          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
-          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent/child/123");
-
-          // Response attributes
-          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
-
-          // Error attributes
-          expect(requestHandlerSpan.attributes["error"]).toBeUndefined();
-        })
-        .catch((error) => {
-          done(error);
-        })
-        .finally(done);
+      // Request handler span
+      expectRequestHandlerSpan(requestHandlerSpan);
+      expectRequestAttributes(requestHandlerSpan, expectedRequestAttributes);
+      expectResponseAttributes(requestHandlerSpan, { status: 200 });
+      expectNoError(requestHandlerSpan);
     });
 
-    it("handles a thrown error from loader", (done) => {
+    it("handles a thrown error from loader", async () => {
       const request = new Request("http://localhost/throws-error", { method: "GET" });
-      requestHandler(request, {})
-        .then(() => {
-          const spans = getTestSpans();
-          expect(spans.length).toBe(2);
+      await requestHandler(request, {});
 
-          const [loaderSpan, requestHandlerSpan] = spans;
+      const spans = getTestSpans();
+      expect(spans.length).toBe(2);
 
-          //
-          // Loader span
-          //
+      const [loaderSpan, requestHandlerSpan] = spans;
 
-          // General properties
-          expect(loaderSpan.name).toBe("LOADER routes/throws-error");
+      expectParentSpan(requestHandlerSpan, loaderSpan);
 
-          // Request attributes
-          expect(loaderSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
-          expect(loaderSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/throws-error");
+      const expectedRequestAttributes = {
+        method: "GET",
+        url: "http://localhost/throws-error",
+      };
 
-          // Match attributes
-          expect(loaderSpan.attributes["match.route.id"]).toBe("routes/throws-error");
+      // Loader span
+      expectLoaderSpan(loaderSpan, "routes/throws-error");
+      expectRequestAttributes(loaderSpan, expectedRequestAttributes);
+      expectNoResponseAttributes(loaderSpan);
+      expectEventError(loaderSpan, "oh no loader");
+      expectNoAttributeError(loaderSpan);
 
-          // Response attributes
-          expect(loaderSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBeUndefined();
+      // Request handler span
+      expectRequestHandlerSpan(requestHandlerSpan);
+      expectRequestAttributes(requestHandlerSpan, expectedRequestAttributes);
+      expectResponseAttributes(requestHandlerSpan, { status: 500 });
+      expectNoError(requestHandlerSpan);
+    });
 
-          // Error attributes
-          expect(loaderSpan.attributes["error"]).toBe(true);
-          expect(loaderSpan.attributes[SemanticAttributes.EXCEPTION_MESSAGE]).toBe("oh no loader");
-          expect(loaderSpan.attributes[SemanticAttributes.EXCEPTION_STACKTRACE]).toBeDefined();
+    describe("with legacyErrorAttributes", () => {
+      before(() => {
+        instrumentation.setConfig({
+          ...instrumentationConfig,
+          legacyErrorAttributes: true,
+        });
+      });
 
-          //
-          // Request Handler span
-          //
+      after(() => {
+        instrumentation.setConfig(instrumentationConfig);
+      });
 
-          // General properties
-          expect(requestHandlerSpan.name).toBe("remix.request");
+      it("handles a thrown error from loader", async () => {
+        const request = new Request("http://localhost/throws-error", { method: "GET" });
+        await requestHandler(request, {});
 
-          // Request attributes
-          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
-          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/throws-error");
+        const spans = getTestSpans();
+        expect(spans.length).toBe(2);
 
-          // Response attributes
-          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(500);
+        const [loaderSpan, requestHandlerSpan] = spans;
 
-          // Error attributes
-          expect(requestHandlerSpan.attributes["error"]).toBeUndefined();
-        })
-        .catch((error) => {
-          done(error);
-        })
-        .finally(done);
+        expectParentSpan(requestHandlerSpan, loaderSpan);
+
+        const expectedRequestAttributes = {
+          method: "GET",
+          url: "http://localhost/throws-error",
+        };
+
+        // Loader span
+        expectLoaderSpan(loaderSpan, "routes/throws-error");
+        expectRequestAttributes(loaderSpan, expectedRequestAttributes);
+        expectNoResponseAttributes(loaderSpan);
+        expectError(loaderSpan, "oh no loader");
+
+        // Request handler span
+        expectRequestHandlerSpan(requestHandlerSpan);
+        expectRequestAttributes(requestHandlerSpan, expectedRequestAttributes);
+        expectResponseAttributes(requestHandlerSpan, { status: 500 });
+        expectNoError(requestHandlerSpan);
+      });
     });
   });
 
   describe("actions", () => {
-    it("handles basic action", (done) => {
+    it("handles basic action", async () => {
       const request = new Request("http://localhost/parent", { method: "POST" });
-      requestHandler(request, {})
-        .then(() => {
-          const spans = getTestSpans();
-          expect(spans.length).toBe(3);
+      await requestHandler(request, {});
 
-          const [actionSpan, loaderSpan, requestHandlerSpan] = spans;
+      const spans = getTestSpans();
+      expect(spans.length).toBe(3);
 
-          //
-          // Action span
-          //
+      const [actionSpan, loaderSpan, requestHandlerSpan] = spans;
 
-          // General properties
-          expect(actionSpan.name).toBe("ACTION routes/parent");
+      expectParentSpan(requestHandlerSpan, loaderSpan);
+      expectParentSpan(requestHandlerSpan, actionSpan);
 
-          // Request attributes
-          expect(actionSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("POST");
-          expect(actionSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent");
+      const expectedRequestAttributes = {
+        method: "POST",
+        url: "http://localhost/parent",
+      };
 
-          // Match attributes
-          expect(actionSpan.attributes["match.route.id"]).toBe("routes/parent");
+      // Action span
+      expectActionSpan(actionSpan, "routes/parent");
+      expectRequestAttributes(actionSpan, expectedRequestAttributes);
+      expectResponseAttributes(actionSpan, { status: 200 });
+      expectNoError(actionSpan);
 
-          // Response attributes
-          expect(actionSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
+      // Loader span
+      expectLoaderSpan(loaderSpan, "routes/parent");
+      expectRequestAttributes(loaderSpan, loaderRevalidation(expectedRequestAttributes));
+      expectResponseAttributes(loaderSpan, { status: 200 });
+      expectNoError(loaderSpan);
 
-          // Error attributes
-          expect(actionSpan.attributes["error"]).toBeUndefined();
-          expect(actionSpan.attributes[SemanticAttributes.EXCEPTION_MESSAGE]).toBeUndefined();
-          expect(actionSpan.attributes[SemanticAttributes.EXCEPTION_STACKTRACE]).toBeUndefined();
-
-          //
-          // Loader span
-          //
-
-          // General properties
-          expect(loaderSpan.name).toBe("LOADER routes/parent");
-
-          // Request attributes
-
-          // Remix v1.8.2+ uses @remix-run/router v1.0.5, which uses a `GET` for loader revalidation instead of `POST`.
-          // See: https://github.com/remix-run/react-router/blob/main/packages/router/CHANGELOG.md#105
-          if (semver.satisfies(remixServerRuntimePackage.version, "<1.8.2")) {
-            expect(loaderSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("POST");
-          } else {
-            expect(loaderSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
-          }
-          expect(loaderSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent");
-
-          // Match attributes
-          expect(loaderSpan.attributes["match.route.id"]).toBe("routes/parent");
-
-          // Response attributes
-          expect(loaderSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
-
-          // Error attributes
-          expect(loaderSpan.attributes["error"]).toBeUndefined();
-          expect(loaderSpan.attributes[SemanticAttributes.EXCEPTION_MESSAGE]).toBeUndefined();
-          expect(loaderSpan.attributes[SemanticAttributes.EXCEPTION_STACKTRACE]).toBeUndefined();
-
-          //
-          // Request Handler span
-          //
-
-          // General properties
-          expect(requestHandlerSpan.name).toBe("remix.request");
-
-          // Request attributes
-          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("POST");
-          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent");
-
-          // Response attributes
-          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
-
-          // Error attributes
-          expect(requestHandlerSpan.attributes["error"]).toBeUndefined();
-        })
-        .catch((error) => {
-          done(error);
-        })
-        .finally(done);
+      // Request handler span
+      expectRequestHandlerSpan(requestHandlerSpan);
+      expectRequestAttributes(requestHandlerSpan, expectedRequestAttributes);
+      expectResponseAttributes(requestHandlerSpan, { status: 200 });
+      expectNoError(requestHandlerSpan);
     });
 
-    it("extracts action formData fields from form data", (done) => {
+    it("extracts action formData fields from form data", async () => {
       const body = new FormData();
       body.append("_action", "myAction");
       body.append("foo", "bar");
@@ -446,143 +431,112 @@ describe("instrumentation-remix", () => {
         body,
       });
 
-      requestHandler(request, {})
-        .then(() => {
-          const spans = getTestSpans();
-          expect(spans.length).toBe(3);
+      await requestHandler(request, {});
 
-          const [actionSpan, loaderSpan, requestHandlerSpan] = spans;
+      const spans = getTestSpans();
+      expect(spans.length).toBe(3);
 
-          //
-          // Action span
-          //
+      const [actionSpan, loaderSpan, requestHandlerSpan] = spans;
 
-          // General properties
-          expect(actionSpan.name).toBe("ACTION routes/parent");
+      expectParentSpan(requestHandlerSpan, loaderSpan);
+      expectParentSpan(requestHandlerSpan, actionSpan);
 
-          // Form attributes
-          expect(actionSpan.attributes["formData.actionType"]).toBe("myAction");
-          expect(actionSpan.attributes["formData.foo"]).toBeUndefined();
-          expect(actionSpan.attributes["formData.num"]).toBe("123");
+      const expectedRequestAttributes = {
+        method: "POST",
+        url: "http://localhost/parent",
+      };
 
-          // Request attributes
-          expect(actionSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("POST");
-          expect(actionSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent");
+      // Action span
+      expectActionSpan(actionSpan, "routes/parent", {
+        actionType: "myAction",
+        foo: undefined,
+        num: "123",
+      });
+      expectRequestAttributes(actionSpan, expectedRequestAttributes);
+      expectResponseAttributes(actionSpan, { status: 200 });
+      expectNoError(actionSpan);
 
-          // Match attributes
-          expect(actionSpan.attributes["match.route.id"]).toBe("routes/parent");
+      // Loader span
+      expectLoaderSpan(loaderSpan, "routes/parent");
+      expectRequestAttributes(loaderSpan, loaderRevalidation(expectedRequestAttributes));
+      expectResponseAttributes(loaderSpan, { status: 200 });
+      expectNoError(loaderSpan);
 
-          // Response attributes
-          expect(actionSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
-
-          // Error attributes
-          expect(actionSpan.attributes["error"]).toBeUndefined();
-          expect(actionSpan.attributes[SemanticAttributes.EXCEPTION_MESSAGE]).toBeUndefined();
-          expect(actionSpan.attributes[SemanticAttributes.EXCEPTION_STACKTRACE]).toBeUndefined();
-
-          //
-          // Loader span
-          //
-
-          // General properties
-          expect(loaderSpan.name).toBe("LOADER routes/parent");
-
-          // Request attributes
-          // Remix v1.8.2+ uses @remix-run/router v1.0.5, which uses a `GET` for loader revalidation instead of `POST`.
-          // See: https://github.com/remix-run/react-router/blob/main/packages/router/CHANGELOG.md#105
-          if (semver.satisfies(remixServerRuntimePackage.version, "<1.8.2")) {
-            expect(loaderSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("POST");
-          } else {
-            expect(loaderSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("GET");
-          }
-          expect(loaderSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent");
-
-          // Match attributes
-          expect(loaderSpan.attributes["match.route.id"]).toBe("routes/parent");
-
-          // Response attributes
-          expect(loaderSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
-
-          // Error attributes
-          expect(loaderSpan.attributes["error"]).toBeUndefined();
-          expect(loaderSpan.attributes[SemanticAttributes.EXCEPTION_MESSAGE]).toBeUndefined();
-          expect(loaderSpan.attributes[SemanticAttributes.EXCEPTION_STACKTRACE]).toBeUndefined();
-
-          //
-          // Request Handler span
-          //
-
-          // General properties
-          expect(requestHandlerSpan.name).toBe("remix.request");
-
-          // Request attributes
-          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("POST");
-          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/parent");
-
-          // Response attributes
-          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(200);
-
-          // Error attributes
-          expect(requestHandlerSpan.attributes["error"]).toBeUndefined();
-        })
-        .catch((error) => {
-          done(error);
-        })
-        .finally(done);
+      // Request handler span
+      expectRequestHandlerSpan(requestHandlerSpan);
+      expectRequestAttributes(requestHandlerSpan, expectedRequestAttributes);
+      expectResponseAttributes(requestHandlerSpan, { status: 200 });
+      expectNoError(requestHandlerSpan);
     });
 
-    it("handles a thrown error from action", (done) => {
+    it("handles a thrown error from action", async () => {
       const request = new Request("http://localhost/throws-error", { method: "POST" });
-      requestHandler(request, {})
-        .then(() => {
-          const spans = getTestSpans();
-          expect(spans.length).toBe(2);
+      await requestHandler(request, {});
+      const spans = getTestSpans();
+      expect(spans.length).toBe(2);
 
-          const [actionSpan, requestHandlerSpan] = spans;
+      const [actionSpan, requestHandlerSpan] = spans;
 
-          //
-          // Action span
-          //
+      expectParentSpan(requestHandlerSpan, actionSpan);
 
-          // General properties
-          expect(actionSpan.name).toBe("ACTION routes/throws-error");
+      const expectedRequestAttributes = {
+        method: "POST",
+        url: "http://localhost/throws-error",
+      };
 
-          // Request attributes
-          expect(actionSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("POST");
-          expect(actionSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/throws-error");
+      // Action span
+      expectActionSpan(actionSpan, "routes/throws-error");
+      expectRequestAttributes(actionSpan, expectedRequestAttributes);
+      expectNoResponseAttributes(actionSpan);
+      expectEventError(actionSpan, "oh no action");
+      expectNoAttributeError(actionSpan);
 
-          // Match attributes
-          expect(actionSpan.attributes["match.route.id"]).toBe("routes/throws-error");
+      // Request handler span
+      expectRequestHandlerSpan(requestHandlerSpan);
+      expectRequestAttributes(requestHandlerSpan, expectedRequestAttributes);
+      expectResponseAttributes(requestHandlerSpan, { status: 500 });
+      expectNoError(requestHandlerSpan);
+    });
 
-          // Response attributes
-          expect(actionSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBeUndefined();
+    describe("with legacyErrorAttributes", () => {
+      before(() => {
+        instrumentation.setConfig({
+          ...instrumentationConfig,
+          legacyErrorAttributes: true,
+        });
+      });
 
-          // Error attributes
-          expect(actionSpan.attributes["error"]).toBe(true);
-          expect(actionSpan.attributes[SemanticAttributes.EXCEPTION_MESSAGE]).toBe("oh no action");
-          expect(actionSpan.attributes[SemanticAttributes.EXCEPTION_STACKTRACE]).toBeDefined();
+      after(() => {
+        instrumentation.setConfig(instrumentationConfig);
+      });
 
-          //
-          // Request Handler span
-          //
+      it("handles a thrown error from action", async () => {
+        const request = new Request("http://localhost/throws-error", { method: "POST" });
+        await requestHandler(request, {});
+        const spans = getTestSpans();
+        expect(spans.length).toBe(2);
 
-          // General properties
-          expect(requestHandlerSpan.name).toBe("remix.request");
+        const [actionSpan, requestHandlerSpan] = spans;
 
-          // Request attributes
-          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_METHOD]).toBe("POST");
-          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_URL]).toBe("http://localhost/throws-error");
+        expectParentSpan(requestHandlerSpan, actionSpan);
 
-          // Response attributes
-          expect(requestHandlerSpan.attributes[SemanticAttributes.HTTP_STATUS_CODE]).toBe(500);
+        const expectedRequestAttributes = {
+          method: "POST",
+          url: "http://localhost/throws-error",
+        };
 
-          // Error attributes
-          expect(requestHandlerSpan.attributes["error"]).toBeUndefined();
-        })
-        .catch((error) => {
-          done(error);
-        })
-        .finally(done);
+        // Action span
+        expectActionSpan(actionSpan, "routes/throws-error");
+        expectRequestAttributes(actionSpan, expectedRequestAttributes);
+        expectNoResponseAttributes(actionSpan);
+        expectError(actionSpan, "oh no action");
+
+        // Request handler span
+        expectRequestHandlerSpan(requestHandlerSpan);
+        expectRequestAttributes(requestHandlerSpan, expectedRequestAttributes);
+        expectResponseAttributes(requestHandlerSpan, { status: 500 });
+        expectNoError(requestHandlerSpan);
+      });
     });
   });
 });

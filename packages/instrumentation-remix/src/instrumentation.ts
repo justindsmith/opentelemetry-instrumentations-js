@@ -1,4 +1,4 @@
-import opentelemetry, { Span } from "@opentelemetry/api";
+import opentelemetry, { Span, SpanStatusCode } from "@opentelemetry/api";
 import {
   InstrumentationBase,
   InstrumentationConfig,
@@ -28,12 +28,18 @@ export interface RemixInstrumentationConfig extends InstrumentationConfig {
    * @default { _action: "actionType" }
    */
   actionFormDataAttributes?: Record<string, boolean | string>;
+  /**
+   * Whether to emit errors in the form of span attributes, as well as in span exception events.
+   * Defaults to `false`, meaning that only span exception events are emitted.
+   */
+  legacyErrorAttributes?: boolean;
 }
 
 const DEFAULT_CONFIG: RemixInstrumentationConfig = {
   actionFormDataAttributes: {
     _action: "actionType",
   },
+  legacyErrorAttributes: false,
 };
 
 export class RemixInstrumentation extends InstrumentationBase {
@@ -235,7 +241,7 @@ export class RemixInstrumentation extends InstrumentationBase {
               return response;
             })
             .catch((error) => {
-              addErrorAttributesToSpan(span, error);
+              plugin.addErrorToSpan(span, error);
               throw error;
             })
             .finally(() => {
@@ -270,7 +276,7 @@ export class RemixInstrumentation extends InstrumentationBase {
               return response;
             })
             .catch((error) => {
-              addErrorAttributesToSpan(span, error);
+              plugin.addErrorToSpan(span, error);
               throw error;
             })
             .finally(() => {
@@ -306,7 +312,7 @@ export class RemixInstrumentation extends InstrumentationBase {
               return response;
             })
             .catch((error) => {
-              addErrorAttributesToSpan(span, error);
+              plugin.addErrorToSpan(span, error);
               throw error;
             })
             .finally(() => {
@@ -359,7 +365,7 @@ export class RemixInstrumentation extends InstrumentationBase {
                 return response;
               })
               .catch(async (error) => {
-                addErrorAttributesToSpan(span, error);
+                plugin.addErrorToSpan(span, error);
                 throw error;
               })
               .finally(() => {
@@ -414,7 +420,7 @@ export class RemixInstrumentation extends InstrumentationBase {
                 return response;
               })
               .catch(async (error) => {
-                addErrorAttributesToSpan(span, error);
+                plugin.addErrorToSpan(span, error);
                 throw error;
               })
               .finally(() => {
@@ -424,6 +430,14 @@ export class RemixInstrumentation extends InstrumentationBase {
         );
       };
     };
+  }
+
+  private addErrorToSpan(span: Span, error: Error) {
+    addErrorEventToSpan(span, error);
+
+    if (this.getConfig().legacyErrorAttributes || false) {
+      addErrorAttributesToSpan(span, error);
+    }
   }
 }
 
@@ -448,6 +462,11 @@ const addResponseAttributesToSpan = (span: Span, response: Response) => {
   span.setAttributes({
     [SemanticAttributes.HTTP_STATUS_CODE]: response.status,
   });
+};
+
+const addErrorEventToSpan = (span: Span, error: Error) => {
+  span.recordException(error);
+  span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
 };
 
 const addErrorAttributesToSpan = (span: Span, error: Error) => {
