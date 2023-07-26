@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.4.0](https://github.com/justindsmith/opentelemetry-instrumentations-js/compare/opentelemetry-instrumentation-remix@0.3.0...opentelemetry-instrumentation-remix@0.4.0) (2023-07-26)
+
+
+### Features
+
+* **remix:** Report errors as exception events ([#37](https://github.com/justindsmith/opentelemetry-instrumentations-js/issues/37)) ([a21f2ab](https://github.com/justindsmith/opentelemetry-instrumentations-js/commit/a21f2ab91c39888865d74270249ee204cdcbd04d))
+
+
+
+
+
 # [0.3.0](https://github.com/justindsmith/opentelemetry-instrumentations-js/compare/opentelemetry-instrumentation-remix@0.2.0...opentelemetry-instrumentation-remix@0.3.0) (2023-01-14)
 
 
