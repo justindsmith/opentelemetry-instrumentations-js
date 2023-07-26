@@ -80,7 +80,7 @@ let build: ServerBuild = {
   entry: {
     module: entryModule,
   },
-  future: {}
+  future: {},
 } as unknown as ServerBuild;
 
 /**
