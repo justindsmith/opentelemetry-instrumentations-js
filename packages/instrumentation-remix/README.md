@@ -84,7 +84,7 @@ Emitted for every `loader` called.
 | `http.status_code`         | Response status code                                                   | `200`                                                          |
 | `match.route.id`           | Remix matched route id                                                 | `"routes/jokes/$jokeId"`                                       |
 | `match.params.[paramName]` | Value for each remix matched param                                     | `[match.params.jokeId]: 23fc7bcf-2d35-4c70-877f-338eca1fd3ef"` |
-| `error`                    | Added if error detected                                                | `true`                                                         |
+| `error`                    | Added if error detected and if `legacyErrorAttributes` enabled         | `true`                                                         |
 | `exception.message`        | Error message, if `legacyErrorAttributes` enabled and if applicable    | `"Kaboom!"`                                                    |
 | `exception.stacktrace`     | Error stacktrace, if `legacyErrorAttributes` enabled and if applicable | [stacktrace]                                                   |
 
@@ -113,7 +113,7 @@ Emitted for every `action` called.
 | `match.route.id`           | Remix matched route id                                                 | `"routes/jokes/$jokeId"`                                        |
 | `match.params.[paramName]` | Value for each remix matched param                                     | `[match.params.jokeId]: "23fc7bcf-2d35-4c70-877f-338eca1fd3ef"` |
 | `formData.[fieldName]`     | Value for each configured FormData field                               | `[formData.actionType]: "createJoke"`                           |
-| `error`                    | Added if error detected                                                | `true`                                                          |
+| `error`                    | Added if error detected and if `legacyErrorAttributes` enabled         | `true`                                                          |
 | `exception.message`        | Error message, if `legacyErrorAttributes` enabled and if applicable    | `"Kaboom!"`                                                     |
 | `exception.stacktrace`     | Error stacktrace, if `legacyErrorAttributes` enabled and if applicable | [stacktrace]                                                    |
 
