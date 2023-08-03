@@ -45,9 +45,9 @@ registerInstrumentations({
 ### requestHandler
 Emitted for every request into remix server.
 
-| Operation       |
-|-----------------|
-| `remix.request` |
+| Operation                   | Example                        | Notes                                                                               |
+|-----------------------------|--------------------------------|-------------------------------------------------------------------------------------|
+| `remix.request [routePath]` | `remix.request /jokes/:jokeId` | If the request does not match a route, the name of the span will be `remix.request` |
 
 
 | Attribute              | Description                                                            | Example Value                                                |
@@ -55,7 +55,9 @@ Emitted for every request into remix server.
 | `code.function`        | Name of executed function                                              | `"requestHandler"`                                           |
 | `http.method`          | HTTP method                                                            | `"POST"`                                                     |
 | `http.url`             | HTTP URL                                                               | `"https://remix.jokes/jokes/new?_data=routes%2Fjokes%2Fnew"` |
+| `http.route`           | HTTP route path, added if the request matches a route                  | `"/jokes/:jokeId"`                                           |
 | `http.status_code`     | Response status code                                                   | `200`                                                        |
+| `match.route.id`       | Remix matched route ID, added if the request matches a route           | `"routes/jokes/$jokeId"`                                     |
 | `error`                | Added if error detected and if `legacyErrorAttributes` enabled         | `true`                                                       |
 | `exception.message`    | Error message, if `legacyErrorAttributes` enabled and if applicable    | `"Kaboom!"`                                                  |
 | `exception.stacktrace` | Error stacktrace, if `legacyErrorAttributes` enabled and if applicable | [stacktrace]                                                 |

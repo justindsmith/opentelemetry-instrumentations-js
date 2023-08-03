@@ -61,6 +61,20 @@ const routes: ServerBuild["routes"] = {
       default: undefined,
     },
   },
+  "routes/has-no-loader-or-action": {
+    id: "routes/has-no-loader-or-action",
+    path: "/has-no-loader-or-action",
+    module: {
+      default: () => React.createElement("div", {}, "routes/has-no-loader-or-action"),
+    },
+  },
+  // Implicitly used to handle 404s
+  root: {
+    id: "root",
+    module: {
+      default: () => React.createElement("div", {}, "root"),
+    },
+  },
 };
 
 const entryModule: ServerEntryModule = {
@@ -159,8 +173,16 @@ const expectActionSpan = (span: ReadableSpan, route: string, formData: { [key: s
   });
 };
 
-const expectRequestHandlerSpan = (span: ReadableSpan) => {
+const expectRequestHandlerSpan = (span: ReadableSpan, { path, id }: { path: string; id: string }) => {
+  expect(span.name).toBe(`remix.request ${path}`);
+  expect(span.attributes[SemanticAttributes.HTTP_ROUTE]).toBe(path);
+  expect(span.attributes["match.route.id"]).toBe(id);
+};
+
+const expectRequestHandlerMatchNotFoundSpan = (span: ReadableSpan) => {
   expect(span.name).toBe("remix.request");
+  expect(span.attributes[SemanticAttributes.HTTP_ROUTE]).toBeUndefined();
+  expect(span.attributes["match.route.id"]).toBeUndefined();
 };
 
 const expectParentSpan = (parent: ReadableSpan, child: ReadableSpan) => {
@@ -215,6 +237,52 @@ describe("instrumentation-remix", () => {
   });
 
   describe("requestHandler", () => {
+    it("has a route match when there is no loader or action", async () => {
+      const request = new Request("http://localhost/has-no-loader-or-action", { method: "GET" });
+      await requestHandler(request, {});
+
+      const spans = getTestSpans();
+      expect(spans.length).toBe(1);
+
+      const [requestHandlerSpan] = spans;
+
+      const expectedRequestAttributes = {
+        method: "GET",
+        url: "http://localhost/has-no-loader-or-action",
+      };
+
+      // Request handler span
+      expectRequestHandlerSpan(requestHandlerSpan, {
+        path: "/has-no-loader-or-action",
+        id: "routes/has-no-loader-or-action",
+      });
+      expectRequestAttributes(requestHandlerSpan, expectedRequestAttributes);
+      expectResponseAttributes(requestHandlerSpan, { status: 200 });
+      expectNoError(requestHandlerSpan);
+    });
+
+    it("does not have a route match when there is no route", async () => {
+      const request = new Request("http://localhost/does-not-exist", { method: "GET" });
+
+      await requestHandler(request, {});
+
+      const spans = getTestSpans();
+      expect(spans.length).toBe(1);
+
+      const [requestHandlerSpan] = spans;
+
+      const expectedRequestAttributes = {
+        method: "GET",
+        url: "http://localhost/does-not-exist",
+      };
+
+      // Request handler span
+      expectRequestHandlerMatchNotFoundSpan(requestHandlerSpan);
+      expectRequestAttributes(requestHandlerSpan, expectedRequestAttributes);
+      expectResponseAttributes(requestHandlerSpan, { status: 404 });
+      expectNoError(requestHandlerSpan);
+    });
+
     it("handles thrown error from entry module", async () => {
       const request = new Request("http://localhost/parent?throwEntryModuleError", { method: "GET" });
       await requestHandler(request, {});
@@ -238,7 +306,10 @@ describe("instrumentation-remix", () => {
       expectNoError(loaderSpan);
 
       // Request handler span
-      expectRequestHandlerSpan(requestHandlerSpan);
+      expectRequestHandlerSpan(requestHandlerSpan, {
+        path: "/parent",
+        id: "routes/parent",
+      });
       expectRequestAttributes(requestHandlerSpan, expectedRequestAttributes);
       expectResponseAttributes(requestHandlerSpan, { status: 500 });
       expectNoError(requestHandlerSpan);
@@ -269,7 +340,10 @@ describe("instrumentation-remix", () => {
       expectNoError(loaderSpan);
 
       // Request handler span
-      expectRequestHandlerSpan(requestHandlerSpan);
+      expectRequestHandlerSpan(requestHandlerSpan, {
+        path: "/parent",
+        id: "routes/parent",
+      });
       expectRequestAttributes(requestHandlerSpan, expectedRequestAttributes);
       expectResponseAttributes(requestHandlerSpan, { status: 200 });
       expectNoError(requestHandlerSpan);
@@ -305,7 +379,10 @@ describe("instrumentation-remix", () => {
       expectNoError(childLoaderSpan);
 
       // Request handler span
-      expectRequestHandlerSpan(requestHandlerSpan);
+      expectRequestHandlerSpan(requestHandlerSpan, {
+        path: "/parent/child/:id",
+        id: "routes/parent/child/$id",
+      });
       expectRequestAttributes(requestHandlerSpan, expectedRequestAttributes);
       expectResponseAttributes(requestHandlerSpan, { status: 200 });
       expectNoError(requestHandlerSpan);
@@ -335,7 +412,10 @@ describe("instrumentation-remix", () => {
       expectNoAttributeError(loaderSpan);
 
       // Request handler span
-      expectRequestHandlerSpan(requestHandlerSpan);
+      expectRequestHandlerSpan(requestHandlerSpan, {
+        path: "/throws-error",
+        id: "routes/throws-error",
+      });
       expectRequestAttributes(requestHandlerSpan, expectedRequestAttributes);
       expectResponseAttributes(requestHandlerSpan, { status: 500 });
       expectNoError(requestHandlerSpan);
@@ -376,7 +456,10 @@ describe("instrumentation-remix", () => {
         expectError(loaderSpan, "oh no loader");
 
         // Request handler span
-        expectRequestHandlerSpan(requestHandlerSpan);
+        expectRequestHandlerSpan(requestHandlerSpan, {
+          path: "/throws-error",
+          id: "routes/throws-error",
+        });
         expectRequestAttributes(requestHandlerSpan, expectedRequestAttributes);
         expectResponseAttributes(requestHandlerSpan, { status: 500 });
         expectNoError(requestHandlerSpan);
@@ -415,7 +498,10 @@ describe("instrumentation-remix", () => {
       expectNoError(loaderSpan);
 
       // Request handler span
-      expectRequestHandlerSpan(requestHandlerSpan);
+      expectRequestHandlerSpan(requestHandlerSpan, {
+        path: "/parent",
+        id: "routes/parent",
+      });
       expectRequestAttributes(requestHandlerSpan, expectedRequestAttributes);
       expectResponseAttributes(requestHandlerSpan, { status: 200 });
       expectNoError(requestHandlerSpan);
@@ -463,7 +549,10 @@ describe("instrumentation-remix", () => {
       expectNoError(loaderSpan);
 
       // Request handler span
-      expectRequestHandlerSpan(requestHandlerSpan);
+      expectRequestHandlerSpan(requestHandlerSpan, {
+        path: "/parent",
+        id: "routes/parent",
+      });
       expectRequestAttributes(requestHandlerSpan, expectedRequestAttributes);
       expectResponseAttributes(requestHandlerSpan, { status: 200 });
       expectNoError(requestHandlerSpan);
@@ -492,7 +581,10 @@ describe("instrumentation-remix", () => {
       expectNoAttributeError(actionSpan);
 
       // Request handler span
-      expectRequestHandlerSpan(requestHandlerSpan);
+      expectRequestHandlerSpan(requestHandlerSpan, {
+        path: "/throws-error",
+        id: "routes/throws-error",
+      });
       expectRequestAttributes(requestHandlerSpan, expectedRequestAttributes);
       expectResponseAttributes(requestHandlerSpan, { status: 500 });
       expectNoError(requestHandlerSpan);
@@ -532,7 +624,10 @@ describe("instrumentation-remix", () => {
         expectError(actionSpan, "oh no action");
 
         // Request handler span
-        expectRequestHandlerSpan(requestHandlerSpan);
+        expectRequestHandlerSpan(requestHandlerSpan, {
+          path: "/throws-error",
+          id: "routes/throws-error",
+        });
         expectRequestAttributes(requestHandlerSpan, expectedRequestAttributes);
         expectResponseAttributes(requestHandlerSpan, { status: 500 });
         expectNoError(requestHandlerSpan);
