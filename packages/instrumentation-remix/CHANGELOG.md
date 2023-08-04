@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.5.0](https://github.com/justindsmith/opentelemetry-instrumentations-js/compare/opentelemetry-instrumentation-remix@0.4.0...opentelemetry-instrumentation-remix@0.5.0) (2023-08-04)
+
+
+### Features
+
+* **remix:** Add `http.route` to request handler spans ([#41](https://github.com/justindsmith/opentelemetry-instrumentations-js/issues/41)) ([1fc2a88](https://github.com/justindsmith/opentelemetry-instrumentations-js/commit/1fc2a8863c69518fa4828ba5630a995fe51c1efe))
+
+
+### BREAKING CHANGES
+
+* **remix:** The `remix.request` span name now appends the route path. Use the `code.function`: `requestHandler` attribute as a stable way to find the requestHandler span.
+
+
+
+
+
 # [0.4.0](https://github.com/justindsmith/opentelemetry-instrumentations-js/compare/opentelemetry-instrumentation-remix@0.3.0...opentelemetry-instrumentation-remix@0.4.0) (2023-07-26)
 
 
