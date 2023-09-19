@@ -168,9 +168,11 @@ const expectActionSpan = (span: ReadableSpan, route: string, formData: { [key: s
   expect(span.name).toBe(`ACTION ${route}`);
   expect(span.attributes["match.route.id"]).toBe(route);
 
-  Object.entries(span.attributes).filter(([key]) => key.startsWith("formData.")).forEach(([key, value]) => {
-    expect(formData[key.replace("formData.", "")]).toBe(value);
-  });
+  Object.entries(span.attributes)
+    .filter(([key]) => key.startsWith("formData."))
+    .forEach(([key, value]) => {
+      expect(formData[key.replace("formData.", "")]).toBe(value);
+    });
   Object.entries(formData).forEach(([key, value]) => {
     expect(span.attributes[`formData.${key}`]).toBe(value);
   });
