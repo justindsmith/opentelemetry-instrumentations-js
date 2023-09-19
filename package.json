@@ -20,7 +20,13 @@
     "lerna": "^3.22.1",
     "prettier": "2.3.2"
   },
-  "workspaces": [
-    "packages/*"
-  ]
+  "workspaces": {
+    "packages": [
+      "packages/*"
+    ],
+    "nohoist": [
+      "**/mocha",
+      "**/ts-node"
+    ]
+  }
 }
