@@ -62,7 +62,7 @@ export class RemixInstrumentation extends InstrumentationBase {
   protected init() {
     const remixRunServerRuntimeModule = new InstrumentationNodeModuleDefinition<typeof remixRunServerRuntime>(
       "@remix-run/server-runtime",
-      [">1.*"],
+      [">=1.*"],
       (moduleExports: typeof remixRunServerRuntime) => {
         console.log("createRequestHandler:", moduleExports.createRequestHandler);
         // createRequestHandler
