@@ -11,7 +11,7 @@ npm install --save opentelemetry-instrumentation-remix
 ```
 
 ## Supported Versions
-- `^1.1.0`
+- `1.1.0 - 2.x`
 
 ### Cloudflare Worker Warning
 This instrumentation does NOT support Cloudflare Workers. For more details follow [opentelemetry-js issue #1214](https://github.com/open-telemetry/opentelemetry-js/issues/1214).

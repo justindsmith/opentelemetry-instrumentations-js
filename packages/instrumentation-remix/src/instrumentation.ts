@@ -62,8 +62,9 @@ export class RemixInstrumentation extends InstrumentationBase {
   protected init() {
     const remixRunServerRuntimeModule = new InstrumentationNodeModuleDefinition<typeof remixRunServerRuntime>(
       "@remix-run/server-runtime",
-      ["1.*"],
+      [">=1.*"],
       (moduleExports: typeof remixRunServerRuntime) => {
+        console.log("createRequestHandler:", moduleExports.createRequestHandler);
         // createRequestHandler
         if (isWrapped(moduleExports["createRequestHandler"])) {
           this._unwrap(moduleExports, "createRequestHandler");
@@ -81,7 +82,7 @@ export class RemixInstrumentation extends InstrumentationBase {
       typeof remixRunServerRuntimeRouteMatching
     >(
       "@remix-run/server-runtime/dist/routeMatching",
-      ["1.6.2 - 1.x"],
+      ["1.6.2 - 2.x"],
       (moduleExports: typeof remixRunServerRuntimeRouteMatching) => {
         // createRequestHandler
         if (isWrapped(moduleExports["matchServerRoutes"])) {
@@ -225,7 +226,7 @@ export class RemixInstrumentation extends InstrumentationBase {
      */
     const remixRunServerRuntimeDataModule = new InstrumentationNodeModuleDefinition<typeof remixRunServerRuntimeData>(
       "@remix-run/server-runtime/dist/data",
-      ["1.8.0 - 1.x"],
+      ["1.8.0 - 2.x"],
       (moduleExports: typeof remixRunServerRuntimeData) => {
         // callRouteLoader
         if (isWrapped(moduleExports["callRouteLoaderRR"])) {
