@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.5.1](https://github.com/justindsmith/opentelemetry-instrumentations-js/compare/opentelemetry-instrumentation-remix@0.5.0...opentelemetry-instrumentation-remix@0.5.1) (2023-09-19)
+
+
+### Bug Fixes
+
+* **instrumentation-remix:** handle undefined action keys correctly ([#44](https://github.com/justindsmith/opentelemetry-instrumentations-js/issues/44)) ([d9dfcd4](https://github.com/justindsmith/opentelemetry-instrumentations-js/commit/d9dfcd4d62f35c83847f9fd34539468049f93632))
+
+
+
+
+
 # [0.5.0](https://github.com/justindsmith/opentelemetry-instrumentations-js/compare/opentelemetry-instrumentation-remix@0.4.0...opentelemetry-instrumentation-remix@0.5.0) (2023-08-04)
 
 
