@@ -3,6 +3,7 @@ import {
   InstrumentationBase,
   InstrumentationConfig,
   InstrumentationNodeModuleDefinition,
+  InstrumentationNodeModuleFile,
   isWrapped,
 } from "@opentelemetry/instrumentation";
 import { SemanticAttributes } from "@opentelemetry/semantic-conventions";
@@ -60,28 +61,10 @@ export class RemixInstrumentation extends InstrumentationBase {
   }
 
   protected init() {
-    const remixRunServerRuntimeModule = new InstrumentationNodeModuleDefinition<typeof remixRunServerRuntime>(
-      "@remix-run/server-runtime",
-      [">=1.*"],
-      (moduleExports: typeof remixRunServerRuntime) => {
-        console.log("createRequestHandler:", moduleExports.createRequestHandler);
-        // createRequestHandler
-        if (isWrapped(moduleExports["createRequestHandler"])) {
-          this._unwrap(moduleExports, "createRequestHandler");
-        }
-        this._wrap(moduleExports, "createRequestHandler", this._patchCreateRequestHandler());
-
-        return moduleExports;
-      },
-      (moduleExports: typeof remixRunServerRuntime) => {
-        this._unwrap(moduleExports, "createRequestHandler");
-      }
-    );
-
-    const remixRunServerRuntimeRouteMatchingModule = new InstrumentationNodeModuleDefinition<
+    const remixRunServerRuntimeRouteMatchingFile = new InstrumentationNodeModuleFile<
       typeof remixRunServerRuntimeRouteMatching
     >(
-      "@remix-run/server-runtime/dist/routeMatching",
+      "@remix-run/server-runtime/dist/routeMatching.js",
       ["1.6.2 - 2.x"],
       (moduleExports: typeof remixRunServerRuntimeRouteMatching) => {
         // createRequestHandler
@@ -101,13 +84,13 @@ export class RemixInstrumentation extends InstrumentationBase {
      * Before Remix v1.6.2 we needed to wrap `@remix-run/server-runtime/routeMatching` module import instead of
      * `@remix-run/server-runtime/dist/routeMatching` module import. The wrapping logic is all the same though.
      */
-    const remixRunServerRuntimeRouteMatchingPre_1_6_2_Module = new InstrumentationNodeModuleDefinition<
+    const remixRunServerRuntimeRouteMatchingPre_1_6_2_File = new InstrumentationNodeModuleFile<
       typeof remixRunServerRuntimeRouteMatching
     >(
-      "@remix-run/server-runtime/routeMatching",
+      "@remix-run/server-runtime/routeMatching.js",
       ["1.0 - 1.6.1"],
       (moduleExports: typeof remixRunServerRuntimeRouteMatching) => {
-        // createRequestHandler
+        // matchServerRoutes
         if (isWrapped(moduleExports["matchServerRoutes"])) {
           this._unwrap(moduleExports, "matchServerRoutes");
         }
@@ -124,10 +107,8 @@ export class RemixInstrumentation extends InstrumentationBase {
      * Before Remix v1.6.2 we needed to wrap `@remix-run/server-runtime/data` module import instead of
      * `@remix-run/server-runtime/dist/data` module import. The wrapping logic is all the same though.
      */
-    const remixRunServerRuntimeDataPre_1_6_2_Module = new InstrumentationNodeModuleDefinition<
-      typeof remixRunServerRuntimeData
-    >(
-      "@remix-run/server-runtime/data",
+    const remixRunServerRuntimeDataPre_1_6_2_File = new InstrumentationNodeModuleFile<typeof remixRunServerRuntimeData>(
+      "@remix-run/server-runtime/data.js",
       ["1.0 - 1.6.1"],
       (moduleExports: typeof remixRunServerRuntimeData) => {
         // callRouteLoader
@@ -159,10 +140,8 @@ export class RemixInstrumentation extends InstrumentationBase {
      * Before Remix 1.7.3 we received the full `Match` object for each path in the route chain,
      * afterwards we only receive the `routeId` and associated `params`.
      */
-    const remixRunServerRuntimeDataPre_1_7_2_Module = new InstrumentationNodeModuleDefinition<
-      typeof remixRunServerRuntimeData
-    >(
-      "@remix-run/server-runtime/dist/data",
+    const remixRunServerRuntimeDataPre_1_7_2_File = new InstrumentationNodeModuleFile<typeof remixRunServerRuntimeData>(
+      "@remix-run/server-runtime/dist/data.js",
       ["1.6.2 - 1.7.2"],
       (moduleExports: typeof remixRunServerRuntimeData) => {
         // callRouteLoader
@@ -190,10 +169,8 @@ export class RemixInstrumentation extends InstrumentationBase {
       }
     );
 
-    const remixRunServerRuntimeDataPre_1_7_6_Module = new InstrumentationNodeModuleDefinition<
-      typeof remixRunServerRuntimeData
-    >(
-      "@remix-run/server-runtime/dist/data",
+    const remixRunServerRuntimeDataPre_1_7_6_File = new InstrumentationNodeModuleFile<typeof remixRunServerRuntimeData>(
+      "@remix-run/server-runtime/dist/data.js",
       ["1.7.3 - 1.7.6"],
       (moduleExports: typeof remixRunServerRuntimeData) => {
         // callRouteLoader
@@ -224,8 +201,8 @@ export class RemixInstrumentation extends InstrumentationBase {
     /*
      * In Remix 1.8.0, the callXXLoader functions were renamed to callXXLoaderRR.
      */
-    const remixRunServerRuntimeDataModule = new InstrumentationNodeModuleDefinition<typeof remixRunServerRuntimeData>(
-      "@remix-run/server-runtime/dist/data",
+    const remixRunServerRuntimeDataFile = new InstrumentationNodeModuleFile<typeof remixRunServerRuntimeData>(
+      "@remix-run/server-runtime/dist/data.js",
       ["1.8.0 - 2.x"],
       (moduleExports: typeof remixRunServerRuntimeData) => {
         // callRouteLoader
@@ -253,15 +230,32 @@ export class RemixInstrumentation extends InstrumentationBase {
       }
     );
 
-    return [
-      remixRunServerRuntimeModule,
-      remixRunServerRuntimeRouteMatchingModule,
-      remixRunServerRuntimeRouteMatchingPre_1_6_2_Module,
-      remixRunServerRuntimeDataPre_1_6_2_Module,
-      remixRunServerRuntimeDataPre_1_7_2_Module,
-      remixRunServerRuntimeDataPre_1_7_6_Module,
-      remixRunServerRuntimeDataModule,
-    ];
+    const remixRunServerRuntimeModule = new InstrumentationNodeModuleDefinition<typeof remixRunServerRuntime>(
+      "@remix-run/server-runtime",
+      [">=1.*"],
+      (moduleExports: typeof remixRunServerRuntime) => {
+        // createRequestHandler
+        if (isWrapped(moduleExports["createRequestHandler"])) {
+          this._unwrap(moduleExports, "createRequestHandler");
+        }
+        this._wrap(moduleExports, "createRequestHandler", this._patchCreateRequestHandler());
+
+        return moduleExports;
+      },
+      (moduleExports: typeof remixRunServerRuntime) => {
+        this._unwrap(moduleExports, "createRequestHandler");
+      },
+      [
+        remixRunServerRuntimeRouteMatchingFile,
+        remixRunServerRuntimeRouteMatchingPre_1_6_2_File,
+        remixRunServerRuntimeDataPre_1_6_2_File,
+        remixRunServerRuntimeDataPre_1_7_2_File,
+        remixRunServerRuntimeDataPre_1_7_6_File,
+        remixRunServerRuntimeDataFile,
+      ]
+    );
+
+    return remixRunServerRuntimeModule;
   }
 
   private _patchMatchServerRoutes(): (original: typeof remixRunServerRuntimeRouteMatching.matchServerRoutes) => any {
