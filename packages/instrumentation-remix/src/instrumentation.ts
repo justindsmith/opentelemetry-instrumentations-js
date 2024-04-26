@@ -169,9 +169,11 @@ export class RemixInstrumentation extends InstrumentationBase {
       }
     );
 
-    const remixRunServerRuntimeDataPre_1_7_6_File = new InstrumentationNodeModuleFile<typeof remixRunServerRuntimeData>(
+    const remixRunServerRuntimeDataPre_1_7_6_And_Post_2_9_File = new InstrumentationNodeModuleFile<
+      typeof remixRunServerRuntimeData
+    >(
       "@remix-run/server-runtime/dist/data.js",
-      ["1.7.3 - 1.7.6"],
+      ["1.7.3 - 1.7.6", "2.9.0 - 2.x"],
       (moduleExports: typeof remixRunServerRuntimeData) => {
         // callRouteLoader
         if (isWrapped(moduleExports["callRouteLoader"])) {
@@ -199,11 +201,13 @@ export class RemixInstrumentation extends InstrumentationBase {
     );
 
     /*
-     * In Remix 1.8.0, the callXXLoader functions were renamed to callXXLoaderRR.
+     * In Remix 1.8.0, the callXXLoader functions were renamed to callXXLoaderRR. They were renamed back in 2.9.0.
      */
-    const remixRunServerRuntimeDataFile = new InstrumentationNodeModuleFile<typeof remixRunServerRuntimeData>(
+    const remixRunServerRuntimeDataBetween_1_8_And_2_8_File = new InstrumentationNodeModuleFile<
+      typeof remixRunServerRuntimeData
+    >(
       "@remix-run/server-runtime/dist/data.js",
-      ["1.8.0 - 2.x"],
+      ["1.8.0 - 2.8.x"],
       (moduleExports: typeof remixRunServerRuntimeData) => {
         // callRouteLoader
         if (isWrapped(moduleExports["callRouteLoaderRR"])) {
@@ -250,8 +254,8 @@ export class RemixInstrumentation extends InstrumentationBase {
         remixRunServerRuntimeRouteMatchingPre_1_6_2_File,
         remixRunServerRuntimeDataPre_1_6_2_File,
         remixRunServerRuntimeDataPre_1_7_2_File,
-        remixRunServerRuntimeDataPre_1_7_6_File,
-        remixRunServerRuntimeDataFile,
+        remixRunServerRuntimeDataPre_1_7_6_And_Post_2_9_File,
+        remixRunServerRuntimeDataBetween_1_8_And_2_8_File,
       ]
     );
 
