@@ -531,10 +531,12 @@ const addMatchAttributesToSpan = (span: Span, match: { routeId: string; params: 
   });
 };
 
-const addResponseAttributesToSpan = (span: Span, response: Response) => {
-  span.setAttributes({
-    [SemanticAttributes.HTTP_STATUS_CODE]: response.status,
-  });
+const addResponseAttributesToSpan = (span: Span, response: Response | null) => {
+  if (response) {
+    span.setAttributes({
+      [SemanticAttributes.HTTP_STATUS_CODE]: response.status,
+    });
+  }
 };
 
 const addErrorEventToSpan = (span: Span, error: Error) => {
