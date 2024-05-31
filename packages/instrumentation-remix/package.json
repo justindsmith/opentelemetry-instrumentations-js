@@ -1,6 +1,6 @@
 {
   "name": "opentelemetry-instrumentation-remix",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "open telemetry instrumentation for the `remix` package",
   "keywords": [
     "remix",

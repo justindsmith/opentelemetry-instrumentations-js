@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.7.1](https://github.com/justindsmith/opentelemetry-instrumentations-js/compare/opentelemetry-instrumentation-remix@0.7.0...opentelemetry-instrumentation-remix@0.7.1) (2024-05-31)
+
+
+### Bug Fixes
+
+* **remix:** handle a `null` response when adding attributes ([#50](https://github.com/justindsmith/opentelemetry-instrumentations-js/issues/50)) ([8d694fa](https://github.com/justindsmith/opentelemetry-instrumentations-js/commit/8d694fa7c7242b49fd3d24c3f0248b7b75870856))
+
+
+
+
+
 # [0.7.0](https://github.com/justindsmith/opentelemetry-instrumentations-js/compare/opentelemetry-instrumentation-remix@0.6.0...opentelemetry-instrumentation-remix@0.7.0) (2024-04-26)
 
 
