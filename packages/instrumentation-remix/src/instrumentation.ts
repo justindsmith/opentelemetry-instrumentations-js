@@ -13,6 +13,7 @@ import type * as remixRunServerRuntimeRouteMatching from "@remix-run/server-runt
 import type { RouteMatch } from "@remix-run/server-runtime/dist/routeMatching";
 import type { ServerRoute } from "@remix-run/server-runtime/dist/routes";
 import type * as remixRunServerRuntimeData from "@remix-run/server-runtime/dist/data";
+import { isRedirectResponse } from "@remix-run/server-runtime/dist/responses";
 
 import type { Params } from "@remix-run/router";
 
@@ -314,7 +315,11 @@ export class RemixInstrumentation extends InstrumentationBase {
               return response;
             })
             .catch((error) => {
-              plugin.addErrorToSpan(span, error);
+              if (isRedirectResponse(error)) {
+                span.addEvent("remix.redirect", { status: error.status, location: error.location });
+              } else {
+                plugin.addErrorToSpan(span, error);
+              }
               throw error;
             })
             .finally(() => {
@@ -349,7 +354,11 @@ export class RemixInstrumentation extends InstrumentationBase {
               return response;
             })
             .catch((error) => {
-              plugin.addErrorToSpan(span, error);
+              if (isRedirectResponse(error)) {
+                span.addEvent("remix.redirect", { status: error.status, location: error.location });
+              } else {
+                plugin.addErrorToSpan(span, error);
+              }
               throw error;
             })
             .finally(() => {
@@ -385,7 +394,11 @@ export class RemixInstrumentation extends InstrumentationBase {
               return response;
             })
             .catch((error) => {
-              plugin.addErrorToSpan(span, error);
+              if (isRedirectResponse(error)) {
+                span.addEvent("remix.redirect", { status: error.status, location: error.location });
+              } else {
+                plugin.addErrorToSpan(span, error);
+              }
               throw error;
             })
             .finally(() => {
@@ -438,7 +451,11 @@ export class RemixInstrumentation extends InstrumentationBase {
                 return response;
               })
               .catch(async (error) => {
-                plugin.addErrorToSpan(span, error);
+                if (isRedirectResponse(error)) {
+                  span.addEvent("remix.redirect", { status: error.status, location: error.location });
+                } else {
+                  plugin.addErrorToSpan(span, error);
+                }
                 throw error;
               })
               .finally(() => {
