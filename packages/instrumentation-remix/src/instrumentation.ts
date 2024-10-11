@@ -61,9 +61,7 @@ export class RemixInstrumentation extends InstrumentationBase {
   }
 
   protected init() {
-    const remixRunServerRuntimeRouteMatchingFile = new InstrumentationNodeModuleFile<
-      typeof remixRunServerRuntimeRouteMatching
-    >(
+    const remixRunServerRuntimeRouteMatchingFile = new InstrumentationNodeModuleFile(
       "@remix-run/server-runtime/dist/routeMatching.js",
       ["1.6.2 - 2.x"],
       (moduleExports: typeof remixRunServerRuntimeRouteMatching) => {
@@ -84,9 +82,7 @@ export class RemixInstrumentation extends InstrumentationBase {
      * Before Remix v1.6.2 we needed to wrap `@remix-run/server-runtime/routeMatching` module import instead of
      * `@remix-run/server-runtime/dist/routeMatching` module import. The wrapping logic is all the same though.
      */
-    const remixRunServerRuntimeRouteMatchingPre_1_6_2_File = new InstrumentationNodeModuleFile<
-      typeof remixRunServerRuntimeRouteMatching
-    >(
+    const remixRunServerRuntimeRouteMatchingPre_1_6_2_File = new InstrumentationNodeModuleFile(
       "@remix-run/server-runtime/routeMatching.js",
       ["1.0 - 1.6.1"],
       (moduleExports: typeof remixRunServerRuntimeRouteMatching) => {
@@ -107,7 +103,7 @@ export class RemixInstrumentation extends InstrumentationBase {
      * Before Remix v1.6.2 we needed to wrap `@remix-run/server-runtime/data` module import instead of
      * `@remix-run/server-runtime/dist/data` module import. The wrapping logic is all the same though.
      */
-    const remixRunServerRuntimeDataPre_1_6_2_File = new InstrumentationNodeModuleFile<typeof remixRunServerRuntimeData>(
+    const remixRunServerRuntimeDataPre_1_6_2_File = new InstrumentationNodeModuleFile(
       "@remix-run/server-runtime/data.js",
       ["1.0 - 1.6.1"],
       (moduleExports: typeof remixRunServerRuntimeData) => {
@@ -140,7 +136,7 @@ export class RemixInstrumentation extends InstrumentationBase {
      * Before Remix 1.7.3 we received the full `Match` object for each path in the route chain,
      * afterwards we only receive the `routeId` and associated `params`.
      */
-    const remixRunServerRuntimeDataPre_1_7_2_File = new InstrumentationNodeModuleFile<typeof remixRunServerRuntimeData>(
+    const remixRunServerRuntimeDataPre_1_7_2_File = new InstrumentationNodeModuleFile(
       "@remix-run/server-runtime/dist/data.js",
       ["1.6.2 - 1.7.2"],
       (moduleExports: typeof remixRunServerRuntimeData) => {
@@ -169,9 +165,7 @@ export class RemixInstrumentation extends InstrumentationBase {
       }
     );
 
-    const remixRunServerRuntimeDataPre_1_7_6_And_Post_2_9_File = new InstrumentationNodeModuleFile<
-      typeof remixRunServerRuntimeData
-    >(
+    const remixRunServerRuntimeDataPre_1_7_6_And_Post_2_9_File = new InstrumentationNodeModuleFile(
       "@remix-run/server-runtime/dist/data.js",
       ["1.7.3 - 1.7.6", "2.9.0 - 2.x"],
       (moduleExports: typeof remixRunServerRuntimeData) => {
@@ -203,9 +197,7 @@ export class RemixInstrumentation extends InstrumentationBase {
     /*
      * In Remix 1.8.0, the callXXLoader functions were renamed to callXXLoaderRR. They were renamed back in 2.9.0.
      */
-    const remixRunServerRuntimeDataBetween_1_8_And_2_8_File = new InstrumentationNodeModuleFile<
-      typeof remixRunServerRuntimeData
-    >(
+    const remixRunServerRuntimeDataBetween_1_8_And_2_8_File = new InstrumentationNodeModuleFile(
       "@remix-run/server-runtime/dist/data.js",
       ["1.8.0 - 2.8.x"],
       (moduleExports: typeof remixRunServerRuntimeData) => {
@@ -234,7 +226,7 @@ export class RemixInstrumentation extends InstrumentationBase {
       }
     );
 
-    const remixRunServerRuntimeModule = new InstrumentationNodeModuleDefinition<typeof remixRunServerRuntime>(
+    const remixRunServerRuntimeModule = new InstrumentationNodeModuleDefinition(
       "@remix-run/server-runtime",
       [">=1.*"],
       (moduleExports: typeof remixRunServerRuntime) => {
