@@ -28,7 +28,7 @@ export class PrismaClientInstrumentation extends InstrumentationBase {
   }
 
   protected init() {
-    const prismaClientModule = new InstrumentationNodeModuleDefinition<typeof prismaClient>(
+    const prismaClientModule = new InstrumentationNodeModuleDefinition(
       "@prisma/client",
       ["*"],
       (moduleExports: typeof prismaClient) => {

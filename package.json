@@ -22,7 +22,7 @@
   },
   "workspaces": {
     "packages": [
-      "packages/instrumentation-remix"
+      "packages/*"
     ],
     "nohoist": [
       "**/mocha",
