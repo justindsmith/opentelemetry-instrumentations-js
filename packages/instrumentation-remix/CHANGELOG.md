@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.8.0](https://github.com/justindsmith/opentelemetry-instrumentations-js/compare/opentelemetry-instrumentation-remix@0.7.1...opentelemetry-instrumentation-remix@0.8.0) (2024-10-11)
+
+
+### Features
+
+* upgrade opentelemetry instrumentation and semantic-convention deps ([#57](https://github.com/justindsmith/opentelemetry-instrumentations-js/issues/57)) ([b114c31](https://github.com/justindsmith/opentelemetry-instrumentations-js/commit/b114c319c78f786fb8e3ded9a354c244f1e0204f))
+
+
+
+
+
 ## [0.7.1](https://github.com/justindsmith/opentelemetry-instrumentations-js/compare/opentelemetry-instrumentation-remix@0.7.0...opentelemetry-instrumentation-remix@0.7.1) (2024-05-31)
 
 

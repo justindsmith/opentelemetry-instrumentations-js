@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.4.0](https://github.com/justindsmith/opentelemetry-instrumentations-js/compare/opentelemetry-instrumentation-prisma-client@0.3.0...opentelemetry-instrumentation-prisma-client@0.4.0) (2024-10-11)
+
+
+### Features
+
+* upgrade opentelemetry instrumentation and semantic-convention deps (v2) ([#58](https://github.com/justindsmith/opentelemetry-instrumentations-js/issues/58)) ([af0e41b](https://github.com/justindsmith/opentelemetry-instrumentations-js/commit/af0e41b71da4f734a59d1ab09439cb95c53070dd))
+
+
+
+
+
 # [0.3.0](https://github.com/justindsmith/opentelemetry-instrumentations-js/compare/opentelemetry-instrumentation-prisma-client@0.2.1...opentelemetry-instrumentation-prisma-client@0.3.0) (2023-09-28)
 
 **Note:** Version bump only for package opentelemetry-instrumentation-prisma-client
