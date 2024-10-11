@@ -22,7 +22,8 @@
   },
   "workspaces": {
     "packages": [
-      "packages/*"
+      "packages/*",
+      "!packages/instrumentation-prisma-client"
     ],
     "nohoist": [
       "**/mocha",
