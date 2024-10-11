@@ -1,5 +1,5 @@
 {
-  "packages": ["packages/*", "!packages/prisma-client"],
+  "packages": ["packages/*", "!packages/instrumentation-prisma-client"],
   "version": "independent",
   "npmClient": "yarn",
   "useWorkspaces": true,
