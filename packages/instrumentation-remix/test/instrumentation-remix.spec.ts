@@ -19,7 +19,7 @@ const instrumentationConfig = {
 
 const instrumentation = new RemixInstrumentation(instrumentationConfig);
 
-import { installGlobals } from "@remix-run/node";
+import { installGlobals, redirect } from "@remix-run/node";
 
 import * as remixServerRuntime from "@remix-run/server-runtime";
 import type { ServerBuild, ServerEntryModule } from "@remix-run/server-runtime";
@@ -57,6 +57,19 @@ const routes: ServerBuild["routes"] = {
       },
       action: async () => {
         throw new Error("oh no action");
+      },
+      default: undefined,
+    },
+  },
+  "routes/throws-redirect": {
+    id: "routes/throws-redirect",
+    path: "/throws-redirect",
+    module: {
+      loader: async () => {
+        throw redirect("/");
+      },
+      action: async () => {
+        throw redirect("/");
       },
       default: undefined,
     },
@@ -426,6 +439,39 @@ describe("instrumentation-remix", () => {
       expectNoError(requestHandlerSpan);
     });
 
+    it("handles a thrown redirect from loader", async () => {
+      const request = new Request("http://localhost/throws-redirect", { method: "GET" });
+      await requestHandler(request, {});
+
+      const spans = getTestSpans();
+      expect(spans.length).toBe(2);
+
+      const [loaderSpan, requestHandlerSpan] = spans;
+
+      expectParentSpan(requestHandlerSpan, loaderSpan);
+
+      const expectedRequestAttributes = {
+        method: "GET",
+        url: "http://localhost/throws-redirect",
+      };
+
+      // Loader span
+      expectLoaderSpan(loaderSpan, "routes/throws-redirect");
+      expectRequestAttributes(loaderSpan, expectedRequestAttributes);
+      expectNoResponseAttributes(loaderSpan);
+      expectNoError(loaderSpan);
+      expectNoAttributeError(loaderSpan);
+
+      // Request handler span
+      expectRequestHandlerSpan(requestHandlerSpan, {
+        path: "/throws-redirect",
+        id: "routes/throws-redirect",
+      });
+      expectRequestAttributes(requestHandlerSpan, expectedRequestAttributes);
+      expectResponseAttributes(requestHandlerSpan, { status: 302 });
+      expectNoError(requestHandlerSpan);
+    });
+
     describe("with legacyErrorAttributes", () => {
       before(() => {
         instrumentation.setConfig({
@@ -593,6 +639,38 @@ describe("instrumentation-remix", () => {
       });
       expectRequestAttributes(requestHandlerSpan, expectedRequestAttributes);
       expectResponseAttributes(requestHandlerSpan, { status: 500 });
+      expectNoError(requestHandlerSpan);
+    });
+
+    it("handles a thrown redirect from action", async () => {
+      const request = new Request("http://localhost/throws-redirect", { method: "POST" });
+      await requestHandler(request, {});
+      const spans = getTestSpans();
+      expect(spans.length).toBe(2);
+
+      const [actionSpan, requestHandlerSpan] = spans;
+
+      expectParentSpan(requestHandlerSpan, actionSpan);
+
+      const expectedRequestAttributes = {
+        method: "POST",
+        url: "http://localhost/throws-redirect",
+      };
+
+      // Action span
+      expectActionSpan(actionSpan, "routes/throws-redirect");
+      expectRequestAttributes(actionSpan, expectedRequestAttributes);
+      expectNoResponseAttributes(actionSpan);
+      expectNoError(actionSpan);
+      expectNoAttributeError(actionSpan);
+
+      // Request handler span
+      expectRequestHandlerSpan(requestHandlerSpan, {
+        path: "/throws-redirect",
+        id: "routes/throws-redirect",
+      });
+      expectRequestAttributes(requestHandlerSpan, expectedRequestAttributes);
+      expectResponseAttributes(requestHandlerSpan, { status: 302 });
       expectNoError(requestHandlerSpan);
     });
 
