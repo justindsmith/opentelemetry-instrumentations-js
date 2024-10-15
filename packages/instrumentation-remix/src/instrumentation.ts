@@ -38,6 +38,12 @@ export interface RemixInstrumentationConfig extends InstrumentationConfig {
    * Defaults to `false`, meaning that only span exception events are emitted.
    */
   legacyErrorAttributes?: boolean;
+
+  /**
+   * Function to add error to the span. By default, it adds error as an exception event and sets the span status to error.
+   * You can override this function to add custom error handling logic.
+   */
+  addErrorToSpan?: (span: Span, error: Error) => void;
 }
 
 const DEFAULT_CONFIG: RemixInstrumentationConfig = {
@@ -417,7 +423,7 @@ export class RemixInstrumentation extends InstrumentationBase {
                   const formData = await clonedRequest.formData();
                   const { actionFormDataAttributes: actionFormAttributes } = plugin.getConfig();
                   formData.forEach((value, key) => {
-                    if (actionFormAttributes[key] && actionFormAttributes[key] !== false) {
+                    if (actionFormAttributes[key]) {
                       const keyName = actionFormAttributes[key] === true ? key : actionFormAttributes[key];
                       span.setAttribute(`formData.${keyName}`, value.toString());
                     }
@@ -472,7 +478,7 @@ export class RemixInstrumentation extends InstrumentationBase {
                   const formData = await clonedRequest.formData();
                   const { actionFormDataAttributes: actionFormAttributes } = plugin.getConfig();
                   formData.forEach((value, key) => {
-                    if (actionFormAttributes[key] && actionFormAttributes[key] !== false) {
+                    if (actionFormAttributes[key]) {
                       const keyName = actionFormAttributes[key] === true ? key : actionFormAttributes[key];
                       span.setAttribute(`formData.${keyName}`, value.toString());
                     }
@@ -498,9 +504,15 @@ export class RemixInstrumentation extends InstrumentationBase {
   }
 
   private addErrorToSpan(span: Span, error: Error) {
+    const config = this.getConfig();
+    if (config.addErrorToSpan) {
+      config.addErrorToSpan(span, error);
+      return;
+    }
+
     addErrorEventToSpan(span, error);
 
-    if (this.getConfig().legacyErrorAttributes || false) {
+    if (config.legacyErrorAttributes || false) {
       addErrorAttributesToSpan(span, error);
     }
   }
