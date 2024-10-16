@@ -8,6 +8,8 @@ import {
 } from "@opentelemetry/instrumentation";
 import { SemanticAttributes } from "@opentelemetry/semantic-conventions";
 
+import { getRPCMetadata, RPCType } from "@opentelemetry/core";
+
 import type * as remixRunServerRuntime from "@remix-run/server-runtime";
 import type * as remixRunServerRuntimeRouteMatching from "@remix-run/server-runtime/dist/routeMatching";
 import type { RouteMatch } from "@remix-run/server-runtime/dist/routeMatching";
@@ -274,6 +276,12 @@ export class RemixInstrumentation extends InstrumentationBase {
         if (span && routeId) {
           span.setAttribute(RemixSemanticAttributes.MATCH_ROUTE_ID, routeId);
         }
+
+        const rpcMetadata = getRPCMetadata(opentelemetry.context.active());
+        if (rpcMetadata?.type === RPCType.HTTP) {
+          rpcMetadata.route = routeId;
+        }
+
 
         return result;
       };
